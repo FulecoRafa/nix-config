@@ -6,10 +6,11 @@
   imports = [
     ./zellij
     ./fish
-    ./system.bundle.nix
+    ./helix
+    ./fastfetch
   ];
 
-  users.users.fuleco.packages = with pkgs; [
+  home.packages = with pkgs; [
       bat         # cat
       eza         # ls
       zoxide      # cd
@@ -21,5 +22,6 @@
       jq          # json
       scooter     # Find and replace
       fd          # find
+      jujutsu     # git, but better
   ];
 }

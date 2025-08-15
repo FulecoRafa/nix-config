@@ -1,11 +1,10 @@
-{ config, lib, pkgs, inputs, ... }:
+{ config, lib, pkgs, inputs, root, ... }:
 
 {
   imports = [
     ./hardware-configuration.nix
-    ../../termapps/helix
-    ../../termapps/cli_utils.bundle.nix
     ./home/fuleco/homemanager.nix
+    (root + /termapps/system.bundle.nix)
   ];
 
   environment.variables = {
@@ -28,10 +27,6 @@
     extraGroups = [ "wheel" ]; # Enable ‘sudo’ for the user.
     initialPassword = "correcthorsebatterystaple";
     packages = with pkgs; [
-      bat
-      eza
-      zoxide
-      jujutsu
     ];
   };
 

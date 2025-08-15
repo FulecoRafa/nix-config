@@ -1,7 +1,8 @@
 { pkgs, inputs, ... }:
 
 {
-  users.users.fuleco.packages = [
-    inputs.helix.packages.${pkgs.system}.helix
-  ];
+  programs.helix = {
+    enable = true;
+    package = inputs.helix.packages.${pkgs.system}.helix;
+  }
 }

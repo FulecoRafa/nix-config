@@ -6,12 +6,14 @@
   ];
 
   home-manager.useGlobalPkgs = true;
+  home-manager.extraSpecialArgs = { inherit inputs; };
 
-  home-manager.users.fuleco = {pkgs, rootPath, ...}: {
+  home-manager.users.fuleco = {pkgs, ...}: {
     programs.home-manager.enable = true;
 
     imports =  [
-      (root + /termapps/fastfetch)
+      (root + /termapps/cli_utils.bundle.nix)
+      (root + /termapps/nushell)
     ];
 
     home.stateVersion = config.system.stateVersion;

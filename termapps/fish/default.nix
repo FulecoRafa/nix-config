@@ -1,7 +1,7 @@
 { pkgs, ... }:
 
 {
-  users.users.fuleco.packages = with pkgs; [
+  home.packages = with pkgs; [
     fish
   ];
 }

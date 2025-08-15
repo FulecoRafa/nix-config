@@ -1,0 +1,25 @@
+{pkgs, ...}:
+
+# This is a bundle of packages that will normally go in the cli without much change.
+# Set these here to extend user packages.
+{
+  imports = [
+    ./zellij
+    ./fish
+    ./system.bundle.nix
+  ];
+
+  users.users.fuleco.packages = with pkgs; [
+      bat         # cat
+      eza         # ls
+      zoxide      # cd
+      yazi        # File Manager
+      ripgrep     # grep
+      ripgrep-all # grep, but with pdf and other files
+      fzf         # fuzzy search
+      fend        # calculator in terminal
+      jq          # json
+      scooter     # Find and replace
+      fd          # find
+  ];
+}

@@ -4,6 +4,7 @@
   imports = [
     ./hardware-configuration.nix
     ../../termapps/helix
+    ../../termapps/cli_utils.bundle.nix
   ];
 
   environment.variables = {
@@ -26,7 +27,6 @@
     extraGroups = [ "wheel" ]; # Enable ‘sudo’ for the user.
     initialPassword = "correcthorsebatterystaple";
     packages = with pkgs; [
-      tree
       bat
       eza
       zoxide

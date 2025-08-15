@@ -8,12 +8,12 @@
     ./fish
     ./helix
     ./fastfetch
+    ./zoxide.nix
   ];
 
   home.packages = with pkgs; [
       bat         # cat
       eza         # ls
-      zoxide      # cd
       yazi        # File Manager
       ripgrep     # grep
       ripgrep-all # grep, but with pdf and other files

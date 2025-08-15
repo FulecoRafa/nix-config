@@ -5,6 +5,12 @@
     inputs.home-manager.nixosModules.home-manager
   ];
 
+  home.sessionVariables = {
+    EDITOR = "hx";
+    COLORTERM = "truecolor";
+  };
+
+
   home-manager.useGlobalPkgs = true;
   home-manager.extraSpecialArgs = { inherit inputs; };
 

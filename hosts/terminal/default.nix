@@ -7,11 +7,6 @@
     (root + /termapps/system.bundle.nix)
   ];
 
-  environment.variables = {
-    EDITOR = "hx";
-    COLORTERM = "truecolor";
-  };
-
   # disko.devices.disk.main.content.partitions.root.content.subvolumes."/swap".swap.swapfile.size = "2G";
 
   boot.kernelPackages = pkgs.linuxPackages_latest;

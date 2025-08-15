@@ -23,10 +23,12 @@
 
   i18n.defaultLocale = "en_US.UTF-8";
 
+  programs.fish.enable = true;
   users.users.fuleco = {
     isNormalUser = true;
     extraGroups = [ "wheel" ]; # Enable ‘sudo’ for the user.
     initialPassword = "correcthorsebatterystaple";
+    shell = pkgs.fish;
     packages = with pkgs; [
     ];
   };

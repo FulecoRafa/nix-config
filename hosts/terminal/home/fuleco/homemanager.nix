@@ -20,5 +20,7 @@
     
     home.packages = with pkgs; [
     ];
+
+    programs.helix.defaultEditor = true;
   };
 }

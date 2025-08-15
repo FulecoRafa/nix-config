@@ -9,6 +9,7 @@
     ./helix
     ./fastfetch
     ./zoxide.nix
+    ./jujutsu.nix
   ];
 
   home.packages = with pkgs; [
@@ -22,6 +23,5 @@
       jq          # json
       scooter     # Find and replace
       fd          # find
-      jujutsu     # git, but better
   ];
 }

@@ -3,7 +3,7 @@
 {
   imports = [
     ./hardware-configuration.nix
-    ./home/fuleco/homemanager.nix
+    ./home/fuleco
     (root + /termapps/system.bundle.nix)
   ];
 

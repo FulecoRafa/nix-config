@@ -5,6 +5,7 @@
     ./hardware-configuration.nix
     ../../termapps/helix
     ../../termapps/cli_utils.bundle.nix
+    ./home/fuleco/homemanager.nix
   ];
 
   environment.variables = {

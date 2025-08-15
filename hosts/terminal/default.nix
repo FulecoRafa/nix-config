@@ -7,6 +7,15 @@
     (root + /termapps/system.bundle.nix)
   ];
 
+  nix = {
+    settings = {
+      experimental-features = [
+        "nix-command"
+        "flakes"
+      ];
+    };
+  };
+
   # disko.devices.disk.main.content.partitions.root.content.subvolumes."/swap".swap.swapfile.size = "2G";
 
   boot.kernelPackages = pkgs.linuxPackages_latest;

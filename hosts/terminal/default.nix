@@ -3,10 +3,11 @@
 {
   imports = [
     ./hardware-configuration.nix
+    ../../termapps/helix
   ];
 
-  environemnt.variables = {
-    EDITOR = "hx"
+  environment.variables = {
+    EDITOR = "hx";
   };
 
   # disko.devices.disk.main.content.partitions.root.content.subvolumes."/swap".swap.swapfile.size = "2G";
@@ -26,7 +27,6 @@
     initialPassword = "correcthorsebatterystaple";
     packages = with pkgs; [
       tree
-      helix
       bat
       eza
       zoxide

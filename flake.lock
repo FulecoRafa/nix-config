@@ -20,6 +20,28 @@
         "type": "github"
       }
     },
+    "helix": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "rust-overlay": "rust-overlay"
+      },
+      "locked": {
+        "lastModified": 1747053665,
+        "narHash": "sha256-Haetl3U2ckeoVnkwv5tLhfKCoJUZ2GB11ZgFc4gjzCU=",
+        "owner": "fulecorafa",
+        "repo": "helix",
+        "rev": "c54f886b1501875ba1a67a99a18c1efb3a47c5a3",
+        "type": "github"
+      },
+      "original": {
+        "owner": "fulecorafa",
+        "ref": "feat/breadcrumbs-popup",
+        "repo": "helix",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1753939845,
@@ -39,7 +61,29 @@
     "root": {
       "inputs": {
         "disko": "disko",
+        "helix": "helix",
         "nixpkgs": "nixpkgs"
+      }
+    },
+    "rust-overlay": {
+      "inputs": {
+        "nixpkgs": [
+          "helix",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1740623427,
+        "narHash": "sha256-3SdPQrZoa4odlScFDUHd4CUPQ/R1gtH4Mq9u8CBiK8M=",
+        "owner": "oxalica",
+        "repo": "rust-overlay",
+        "rev": "d342e8b5fd88421ff982f383c853f0fc78a847ab",
+        "type": "github"
+      },
+      "original": {
+        "owner": "oxalica",
+        "repo": "rust-overlay",
+        "type": "github"
       }
     }
   },

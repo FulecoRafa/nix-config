@@ -8,7 +8,7 @@
     helix.url = "github:fulecorafa/helix/feat/breadcrumbs-popup";
     helix.inputs.nixpkgs.follows = "nixpkgs";
   };
-  outputs = {nixpkgs, ...}@inputs: {
+  outputs = {nixpkgs, home-manager, ...}@inputs: {
     nixosConfigurations.terminal = nixpkgs.lib.nixosSystem {
       specialArgs = {
         inherit inputs;
@@ -16,5 +16,16 @@
       };
       modules = [./hosts/terminal];
     };
+    homeConfigurations = {
+      "fuleco@tamarindo" = home-manager.lib.homeManagerConfiguration {
+        pkgs = nixpkgs.legacyPackages.x86_64-linux;
+        extraSpecialArgs = {
+          inherit inputs;
+          root = ./.;
+        };
+        modules = [./hosts/terminal/home/fuleco/home-module.nix];
+      };
+    };
   };
+
 }

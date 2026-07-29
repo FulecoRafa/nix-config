@@ -7,6 +7,8 @@
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
     helix.url = "github:fulecorafa/helix/feat/breadcrumbs-popup";
     helix.inputs.nixpkgs.follows = "nixpkgs";
+    sops-nix.url = "github:Mic92/sops-nix";
+    sops-nix.inputs.nixpkgs.follows = "nixpkgs";
   };
   outputs = {nixpkgs, home-manager, ...}@inputs: {
     nixosConfigurations.terminal = nixpkgs.lib.nixosSystem {
@@ -15,6 +17,13 @@
         root = ./.;
       };
       modules = [./hosts/terminal];
+    };
+    nixosConfigurations.mangaba = nixpkgs.lib.nixosSystem {
+      specialArgs = {
+        inherit inputs;
+        root = ./.;
+      };
+      modules = [./hosts/mangaba];
     };
     homeConfigurations = {
       "fuleco@tamarindo" = home-manager.lib.homeManagerConfiguration {

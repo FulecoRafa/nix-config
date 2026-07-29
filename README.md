@@ -41,8 +41,8 @@ Collections of different machine specifications
 - TODO: **Macbook(_caju_)**: the fake apple infecting the real Apple.
 - TODO: **Laptop(_jabuticaba_)**: the linux laptop. Kinda like _jaca_,
 but with battery optimizations
-- **Server(_mangaba_)**: homelab. Media (Jellyfin, *arr, qBittorrent, Navidrome,
-beets, slskd), apps (Vaultwarden, Forgejo, ntfy, Actual), rsync sync jobs,
+- **Server(_mangaba_)**: homelab. Media (Jellyfin, *arr, Recyclarr, qBittorrent,
+Navidrome, beets, slskd), apps (Vaultwarden, Forgejo, ntfy, Actual), rsync sync jobs,
 AdGuard Home, Glance and restic backups. Everything is exposed over the tailnet
 with `tailscale serve`, so no service listens on a public port except the
 torrent port and DNS.

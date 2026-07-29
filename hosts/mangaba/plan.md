@@ -44,6 +44,9 @@ rollback junto com o sistema).
   alto, upgrade ligado). Alternativa leve: plugin OpenSubtitles do Jellyfin
 - Cliente de download: **qBittorrent-nox** (torrent — decidido). Transmission
   é a alternativa mais leve se a RAM apertar
+- `services.recyclarr` — sincroniza quality definitions, custom formats,
+  profiles e naming scheme do TRaSH para dentro do Radarr/Sonarr num timer
+  diário. É o que tira essa config de dentro da UI
 
 **Mídia — música**
 - `services.navidrome` — servidor Subsonic
@@ -93,7 +96,8 @@ fragmenta muito.
 - **BIOS:** habilitar "iGPU Multi-Monitor" (ou equivalente) para expor
   `/dev/dri/renderD128` sem monitor conectado. Sem isso, não há VAAPI.
 - **Naming scheme do TRaSH Guides** nos templates de Radarr/Sonarr. É o que
-  faz o Jellyfin acertar metadados e capa automaticamente.
+  faz o Jellyfin acertar metadados e capa automaticamente — aplicado pelo
+  Recyclarr, não à mão na UI.
 - **Syncthing** escala com número de arquivos, não tamanho — não apontar para
   a biblioteca de mídia.
 - **Karakeep** passa de 400MB com o Meilisearch junto, mesmo sem ML. É o app

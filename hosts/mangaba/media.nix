@@ -164,6 +164,14 @@ in
       })
     )
     { jellyfin.environment.LIBVA_DRIVER_NAME = "i965"; }
+    # O timer é `daily` com Persistent, então pode disparar logo depois do boot,
+    # antes de radarr/sonarr estarem escutando.
+    (lib.optionalAttrs config.mangaba.secrets.enable {
+      recyclarr.after = [
+        "radarr.service"
+        "sonarr.service"
+      ];
+    })
   ];
 
   # --- Publicação no tailnet ----------------------------------------------
@@ -218,13 +226,82 @@ in
     };
   };
 
-  # NOTA — o que não dá para declarar aqui:
-  #   Radarr/Sonarr/Bazarr guardam config em SQLite próprio. Depois do primeiro
-  #   boot, aplicar na UI:
+  # --- Recyclarr -----------------------------------------------------------
+  # Radarr/Sonarr guardam config em SQLite próprio, fora do alcance do Nix. O
+  # Recyclarr é a ponte: sincroniza quality definitions, custom formats,
+  # profiles e o naming scheme do TRaSH Guides para dentro deles, num timer
+  # diário. É o que faz o Jellyfin acertar metadados e capa sozinho.
+  #
+  # Precisa das API keys, que só existem depois do primeiro boot de cada um
+  # (Settings > General na UI, ou `xmllint --xpath` no config.xml deles), então
+  # depende dos segredos:
+  #   sops secrets/mangaba.yaml  ->  radarr/apikey, sonarr/apikey
+  services.recyclarr = lib.mkIf config.mangaba.secrets.enable {
+    enable = true;
+    schedule = "daily";
+
+    configuration = {
+      radarr.main = {
+        base_url = "http://127.0.0.1:${toString ports.radarr}";
+        api_key._secret = config.mangaba.secrets.path "radarr/apikey";
+
+        # 1080p Bluray/WEB: 4K não faz sentido aqui — o transcode de HEVC seria
+        # por software e esta máquina não aguenta.
+        include = [
+          { template = "radarr-quality-definition-movie"; }
+          { template = "radarr-quality-profile-hd-bluray-web"; }
+          { template = "radarr-custom-formats-hd-bluray-web"; }
+        ];
+
+        media_naming = {
+          folder = "default";
+          movie = {
+            rename = true;
+            standard = "default";
+          };
+        };
+      };
+
+      sonarr.main = {
+        base_url = "http://127.0.0.1:${toString ports.sonarr}";
+        api_key._secret = config.mangaba.secrets.path "sonarr/apikey";
+
+        include = [
+          { template = "sonarr-quality-definition-series"; }
+          { template = "sonarr-v4-quality-profile-web-1080p"; }
+          { template = "sonarr-v4-custom-formats-web-1080p"; }
+        ];
+
+        media_naming = {
+          series = "default";
+          season = "default";
+          episodes = {
+            rename = true;
+            standard = "default";
+            daily = "default";
+            anime = "default";
+          };
+        };
+      };
+    };
+  };
+
+  mangaba.secrets.declare = lib.mkIf config.mangaba.secrets.enable {
+    "radarr/apikey" = { };
+    "sonarr/apikey" = { };
+  };
+
+  mangaba.cli = lib.optionalAttrs config.mangaba.secrets.enable {
+    recyclarr = {
+      command = "systemctl start recyclarr";
+      description = "Aplica agora os perfis do TRaSH no Radarr/Sonarr; `journalctl -u recyclarr` mostra o diff.";
+      category = "Mídia";
+    };
+  };
+
+  # NOTA — o que sobra para a UI:
   #     - Root folder: ${data}/media/movies e ${data}/media/tv
   #     - Download client: qBittorrent em 127.0.0.1:${toString ports.qbittorrent}
   #     - Remote path mapping: nenhum (mesmo filesystem, hardlink direto)
-  #     - Naming scheme do TRaSH Guides — é o que faz o Jellyfin acertar
-  #       metadados e capa sozinho
   #     - Bazarr: OpenSubtitles.com + Podnapisi, score mínimo alto, upgrade on
 }

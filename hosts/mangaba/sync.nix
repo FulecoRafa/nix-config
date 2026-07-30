@@ -163,6 +163,13 @@ in
 
     environment.etc."mangaba/sync.json".source = configFile;
 
+    # Hub gravável usado pelos clientes do Espanso. Cada computador sincroniza
+    # ~/.config/espanso/match/base.yml com este arquivo via Tailscale SSH.
+    systemd.tmpfiles.rules = [
+      "d ${config.mangaba.storage.dataDir}/sync 2775 fuleco ${config.mangaba.storage.group} - -"
+      "d ${config.mangaba.storage.dataDir}/sync/espanso 2775 fuleco ${config.mangaba.storage.group} - -"
+    ];
+
     mangaba.cli.mangaba-sync = {
       description = "Roda os jobs de rsync agora (${cfg.interval} no timer); aceita outro JSON como argumento.";
       category = "Infra";

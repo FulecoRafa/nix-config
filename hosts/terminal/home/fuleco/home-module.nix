@@ -4,6 +4,7 @@
   imports =  [
     (root + /termapps/cli_utils.bundle.nix)
     (root + /termapps/nushell)
+    (root + /guiapps/espanso)
     ./userdata.nix
   ];
 

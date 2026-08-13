@@ -12,31 +12,38 @@
     fuchico.url = "github:FulecoRafa/fuchico";
     fuchico.inputs.nixpkgs.follows = "nixpkgs";
   };
-  outputs = {nixpkgs, home-manager, ...}@inputs: {
-    nixosConfigurations.terminal = nixpkgs.lib.nixosSystem {
-      specialArgs = {
-        inherit inputs;
-        root = ./.;
-      };
-      modules = [./hosts/terminal];
-    };
-    nixosConfigurations.mangaba = nixpkgs.lib.nixosSystem {
-      specialArgs = {
-        inherit inputs;
-        root = ./.;
-      };
-      modules = [./hosts/mangaba];
-    };
-    homeConfigurations = {
-      "fuleco@tamarindo" = home-manager.lib.homeManagerConfiguration {
-        pkgs = nixpkgs.legacyPackages.x86_64-linux;
-        extraSpecialArgs = {
-          inherit inputs;
+  outputs =
+    { nixpkgs, home-manager, ... }@inputs:
+    let
+      fulecoLib = import ./lib { inherit (nixpkgs) lib; };
+    in
+    {
+      lib = fulecoLib;
+
+      nixosConfigurations.terminal = nixpkgs.lib.nixosSystem {
+        specialArgs = {
+          inherit inputs fulecoLib;
           root = ./.;
         };
-        modules = [./hosts/terminal/home/fuleco/home-module.nix];
+        modules = [ ./hosts/terminal ];
+      };
+      nixosConfigurations.mangaba = nixpkgs.lib.nixosSystem {
+        specialArgs = {
+          inherit inputs fulecoLib;
+          root = ./.;
+        };
+        modules = [ ./hosts/mangaba ];
+      };
+      homeConfigurations = {
+        "fuleco@tamarindo" = home-manager.lib.homeManagerConfiguration {
+          pkgs = nixpkgs.legacyPackages.x86_64-linux;
+          extraSpecialArgs = {
+            inherit inputs fulecoLib;
+            root = ./.;
+          };
+          modules = [ ./hosts/terminal/home/fuleco/home-module.nix ];
+        };
       };
     };
-  };
 
 }

@@ -1,4 +1,10 @@
-{ inputs, root, config, ... }:
+{
+  inputs,
+  root,
+  config,
+  fulecoLib,
+  ...
+}:
 
 {
   imports = [
@@ -6,7 +12,9 @@
   ];
 
   home-manager.useGlobalPkgs = true;
-  home-manager.extraSpecialArgs = { inherit inputs; inherit root; };
+  home-manager.extraSpecialArgs = {
+    inherit inputs root fulecoLib;
+  };
 
   home-manager.users.fuleco = import ./home-module.nix;
 }

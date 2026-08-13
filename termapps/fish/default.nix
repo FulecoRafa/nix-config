@@ -164,7 +164,7 @@ in
       '';
     };
     interactiveShellInit = ''
-      fish_config theme choose Dracula
+      fish_config theme choose ayu-mirage
     '';
   };
 }

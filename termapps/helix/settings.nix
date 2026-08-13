@@ -2,7 +2,7 @@
 
 {
     programs.helix.settings = {
-    theme = "catppuccin_mocha";
+    theme = "ayu_mirage";
     editor = {
       line-number = "relative";
       rulers = [ 80 120 ];

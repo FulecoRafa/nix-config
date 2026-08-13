@@ -9,6 +9,8 @@
     helix.inputs.nixpkgs.follows = "nixpkgs";
     sops-nix.url = "github:Mic92/sops-nix";
     sops-nix.inputs.nixpkgs.follows = "nixpkgs";
+    fuchico.url = "github:FulecoRafa/fuchico";
+    fuchico.inputs.nixpkgs.follows = "nixpkgs";
   };
   outputs = {nixpkgs, home-manager, ...}@inputs: {
     nixosConfigurations.terminal = nixpkgs.lib.nixosSystem {

@@ -20,6 +20,27 @@
         "type": "github"
       }
     },
+    "fuchico": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "systems": "systems"
+      },
+      "locked": {
+        "lastModified": 1785207932,
+        "narHash": "sha256-rQqKVdNAN3ymbHcYUrL03Qs29fh8FlGjke00boI1kHI=",
+        "owner": "FulecoRafa",
+        "repo": "fuchico",
+        "rev": "09acdb60fe27b321eae298a4ba2e0a3ff3899563",
+        "type": "github"
+      },
+      "original": {
+        "owner": "FulecoRafa",
+        "repo": "fuchico",
+        "type": "github"
+      }
+    },
     "helix": {
       "inputs": {
         "nixpkgs": [
@@ -82,6 +103,7 @@
     "root": {
       "inputs": {
         "disko": "disko",
+        "fuchico": "fuchico",
         "helix": "helix",
         "home-manager": "home-manager",
         "nixpkgs": "nixpkgs",
@@ -126,6 +148,21 @@
       "original": {
         "owner": "Mic92",
         "repo": "sops-nix",
+        "type": "github"
+      }
+    },
+    "systems": {
+      "locked": {
+        "lastModified": 1681028828,
+        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
+        "owner": "nix-systems",
+        "repo": "default",
+        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-systems",
+        "repo": "default",
         "type": "github"
       }
     }

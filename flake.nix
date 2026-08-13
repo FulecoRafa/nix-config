@@ -5,6 +5,8 @@
     disko.inputs.nixpkgs.follows = "nixpkgs";
     home-manager.url = "github:nix-community/home-manager/master";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
+    nix-darwin.url = "github:nix-darwin/nix-darwin/master";
+    nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
     helix.url = "github:fulecorafa/helix/feat/breadcrumbs-popup";
     helix.inputs.nixpkgs.follows = "nixpkgs";
     sops-nix.url = "github:Mic92/sops-nix";
@@ -33,6 +35,13 @@
           root = ./.;
         };
         modules = [ ./hosts/mangaba ];
+      };
+      darwinConfigurations.caju = inputs.nix-darwin.lib.darwinSystem {
+        specialArgs = {
+          inherit inputs fulecoLib;
+          root = ./.;
+        };
+        modules = [ ./hosts/caju ];
       };
       homeConfigurations = {
         "fuleco@tamarindo" = home-manager.lib.homeManagerConfiguration {

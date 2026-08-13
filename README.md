@@ -38,7 +38,19 @@ Collections of different machine specifications
 
 - **Terminal(_tamarindo_)**: a headless environment, just with terminal apps and ssh connection.
 - TODO: **Desktop(_jaca_)**: my big desktop environment in home.
-- TODO: **Macbook(_caju_)**: the fake apple infecting the real Apple.
+- **Macbook(_caju_)**: Apple Silicon managed with nix-darwin and Home Manager.
+  CLI tools and supported GUI apps come from nixpkgs; Homebrew remains only as
+  a declarative backend for casks and formulas that do not have a suitable Nix
+  package. Apply it for the first time with:
+
+  ```sh
+  sudo nix run nix-darwin/master#darwin-rebuild -- switch --flake .#caju
+  ```
+
+  Subsequent rebuilds use
+  `sudo darwin-rebuild switch --flake .#caju`. Activation removes Homebrew
+  packages not declared by Caju with `brew bundle cleanup --force`, but keeps
+  application data and preferences (it does not use `zap`).
 - TODO: **Laptop(_jabuticaba_)**: the linux laptop. Kinda like _jaca_,
 but with battery optimizations
 - **Server(_mangaba_)**: homelab. Media (Jellyfin, *arr, Recyclarr, qBittorrent,

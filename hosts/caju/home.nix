@@ -1,5 +1,4 @@
 {
-  lib,
   pkgs,
   root,
   ...
@@ -113,11 +112,6 @@
 
   programs = {
     home-manager.enable = true;
-    helix = {
-      defaultEditor = true;
-      # A branch personalizada de Helix usada no Linux referencia hoje uma
-      # gramática removida do GitHub. Caju usa o pacote estável do nixpkgs.
-      package = lib.mkForce pkgs.helix;
-    };
+    helix.defaultEditor = true;
   };
 }

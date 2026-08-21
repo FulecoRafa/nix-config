@@ -1,4 +1,4 @@
-{ pkgs, inputs, ... }:
+{ ... }:
 
 {
 
@@ -7,19 +7,28 @@
     ./languages.nix
     # ./scls_langs.nix
   ];
-  
+
   programs.helix = {
     enable = true;
-    package = inputs.helix.packages.${pkgs.system}.helix;
     settings = {
       theme = "ayu_mirage";
       editor = {
         line-number = "relative";
-        rulers = [ 80 120 ];
+        rulers = [
+          80
+          120
+        ];
         bufferline = "multiple";
         statusline = {
-          left = ["version-control" "spinner" "file-name" "file-type" "read-only-indicator" "file-modification-indicator"];
-          center = ["mode"];
+          left = [
+            "version-control"
+            "spinner"
+            "file-name"
+            "file-type"
+            "read-only-indicator"
+            "file-modification-indicator"
+          ];
+          center = [ "mode" ];
         };
         cursor-shape = {
           insert = "bar";
@@ -30,11 +39,11 @@
         whitespace = {
           render = "all";
           characters = {
-            tabpad  = " ";
-            space   = "·";
-            nbsp    = "⍽";
-            nnbsp   = "␣";
-            tab     = "→";
+            tabpad = " ";
+            space = "·";
+            nbsp = "⍽";
+            nnbsp = "␣";
+            tab = "→";
             newline = "↩";
           };
         };

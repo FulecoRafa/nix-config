@@ -15,6 +15,7 @@
 # "está no ar?" sem mais um processo residente.
 let
   cfg = config.mangaba.monitoring;
+  kiosk = config.mangaba.kiosk;
   urls = config.mangaba.tailscale.urls;
   data = config.mangaba.storage.dataDir;
 
@@ -43,12 +44,16 @@ let
     let
       present = lib.unique (map (i: i.category) items);
     in
-    (lib.filter (c: lib.elem c present) known) ++ lib.sort lib.lessThan (lib.subtractLists known present);
+    (lib.filter (c: lib.elem c present) known)
+    ++ lib.sort lib.lessThan (lib.subtractLists known present);
 
   byCategory = items: c: lib.filter (i: i.category == c) items;
 
-  link = s:
-    { inherit (s) title url; }
+  link =
+    s:
+    {
+      inherit (s) title url;
+    }
     // lib.optionalAttrs (s.description != "") { inherit (s) description; }
     // lib.optionalAttrs (s.icon != null) { inherit (s) icon; };
 
@@ -98,6 +103,76 @@ let
 
   site = title: url: {
     inherit title url;
+  };
+
+  serverStats = {
+    type = "server-stats";
+    servers = [
+      {
+        type = "local";
+        name = "mangaba";
+        # RAM é o gargalo desta máquina — deixar visível junto com o espaço
+        # de /data.
+        mountpoints = {
+          "/" = { };
+          ${data} = { };
+        };
+      }
+    ];
+  };
+
+  # --- Painel da TV --------------------------------------------------------
+  # Página separada porque a leitura é outra: de longe, sem ninguém para
+  # clicar. Só o que se lê num relance — o que a máquina está fazendo, que dia
+  # é hoje e o que falta fazer. Navegação escondida: não há mouse.
+  painel = {
+    name = "Painel";
+    slug = kiosk.slug;
+    hide-desktop-navigation = true;
+    columns = [
+      {
+        size = "small";
+        widgets = [
+          {
+            type = "clock";
+            hour-format = "24h";
+          }
+          { type = "calendar"; }
+        ];
+      }
+      {
+        size = "full";
+        widgets = [
+          serverStats
+          {
+            type = "monitor";
+            cache = "5m";
+            title = "Serviços";
+            sites = [
+              (site "Jellyfin" urls.jellyfin)
+              (site "Navidrome" urls.navidrome)
+              (site "Vaultwarden" urls.vaultwarden)
+              (site "Forgejo" urls.forgejo)
+              (site "AdGuard" urls.adguard)
+            ];
+          }
+        ];
+      }
+      {
+        size = "small";
+        widgets = [
+          {
+            type = "to-do";
+            title = "Tarefas do dia";
+            # As tarefas moram no localStorage do navegador, não no servidor:
+            # quem edita é a própria TV, e o perfil do Chromium é persistente
+            # (ver kiosk.nix). Abrir esta página de outra máquina mostra uma
+            # lista vazia — é o comportamento do widget, não um bug.
+            id = "mangaba-dia";
+          }
+        ];
+      }
+    ];
   };
 in
 {
@@ -181,21 +256,7 @@ in
                 size = "small";
                 widgets = [
                   { type = "calendar"; }
-                  {
-                    type = "server-stats";
-                    servers = [
-                      {
-                        type = "local";
-                        name = "mangaba";
-                        # RAM é o gargalo desta máquina — deixar visível junto
-                        # com o espaço de /data.
-                        mountpoints = {
-                          "/" = { };
-                          ${data} = { };
-                        };
-                      }
-                    ];
-                  }
+                  serverStats
                 ];
               }
               {
@@ -245,7 +306,8 @@ in
               }
             ];
           }
-        ];
+        ]
+        ++ lib.optional kiosk.enable painel;
       };
     };
 

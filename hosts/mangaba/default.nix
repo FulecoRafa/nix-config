@@ -1,4 +1,11 @@
-{ config, lib, pkgs, inputs, root, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  inputs,
+  root,
+  ...
+}:
 
 # mangaba — homelab.
 #
@@ -19,6 +26,7 @@
     ./apps.nix
     ./sync.nix
     ./monitoring.nix
+    ./kiosk.nix
     ./backup.nix
     (root + /termapps/system.bundle.nix)
   ];

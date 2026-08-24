@@ -1,0 +1,33 @@
+action="${1:-}"
+output="${2:-}"
+mode="${3:-}"
+position="${4:-}"
+scale="${5:-}"
+transform="${6:-0}"
+
+if [[ "$action" != "apply" && "$action" != "save" ]]; then
+  echo "uso: hyprland-monitorctl <apply|save> OUTPUT MODE POSITION SCALE [TRANSFORM]" >&2
+  exit 2
+fi
+
+[[ "$output" =~ ^[A-Za-z0-9_.:-]+$ ]] || { echo "saída inválida" >&2; exit 2; }
+[[ "$mode" =~ ^(preferred|highres|highrr|[0-9]+x[0-9]+(@[0-9]+([.][0-9]+)?(Hz)?)?)$ ]] || { echo "modo inválido" >&2; exit 2; }
+[[ "$position" =~ ^(auto|-?[0-9]+x-?[0-9]+)$ ]] || { echo "posição inválida" >&2; exit 2; }
+[[ "$scale" =~ ^(auto|[0-9]+([.][0-9]+)?)$ ]] || { echo "escala inválida" >&2; exit 2; }
+[[ "$transform" =~ ^[0-7]$ ]] || { echo "transformação inválida" >&2; exit 2; }
+
+specification="$output,$mode,$position,$scale,transform,$transform"
+hyprctl keyword monitor "$specification"
+
+if [[ "$action" == "save" ]]; then
+  config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/hyprland"
+  runtime_config="$config_dir/monitors-runtime.conf"
+  mkdir -p "$config_dir"
+  temporary="$(mktemp "$config_dir/.monitors-runtime.XXXXXX")"
+  if [[ -f "$runtime_config" ]]; then
+    awk -F '[ =,]+' -v output="$output" \
+      '$1 != "monitor" || $2 != output { print }' "$runtime_config" > "$temporary"
+  fi
+  printf 'monitor = %s\n' "$specification" >> "$temporary"
+  mv "$temporary" "$runtime_config"
+fi

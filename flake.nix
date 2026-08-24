@@ -34,6 +34,17 @@
         };
         modules = [ ./hosts/mangaba ];
       };
+      nixosModules.jaca = ./hosts/jaca;
+      nixosConfigurations.jaca-vm = nixpkgs.lib.nixosSystem {
+        specialArgs = {
+          inherit inputs fulecoLib;
+          root = ./.;
+        };
+        modules = [
+          ./hosts/jaca
+          ./hosts/jaca/vm.nix
+        ];
+      };
       darwinConfigurations.caju = inputs.nix-darwin.lib.darwinSystem {
         specialArgs = {
           inherit inputs fulecoLib;

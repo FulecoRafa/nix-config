@@ -37,7 +37,10 @@ This includes terminal emulator, browser and other applications.
 Collections of different machine specifications
 
 - **Terminal(_tamarindo_)**: a headless environment, just with terminal apps and ssh connection.
-- TODO: **Desktop(_jaca_)**: my big desktop environment in home.
+- **Desktop(_jaca_)**: base do desktop NixOS com Hyprland, UWSM, Quickshell,
+  Helium e Ghostty. Disco e GPU físicos são parâmetros do módulo; o perfil
+  `jaca-vm` permite avaliar e testar a integração em uma VM Linux ARM. Veja
+  `hosts/jaca/plan.md`.
 - **Macbook(_caju_)**: Apple Silicon managed with nix-darwin and Home Manager.
   CLI tools and supported GUI apps come from nixpkgs; Homebrew remains only as
   a declarative backend for casks and formulas that do not have a suitable Nix

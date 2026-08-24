@@ -124,6 +124,15 @@ $env.config = {
         osc633: true
         reset_application_mode: true
     }
+    keybindings: [
+        {
+            name: edit_prompt
+            modifier: control
+            keycode: char_e
+            mode: [vi_insert vi_normal]
+            event: { send: executehostcommand cmd: 'prompt-edit' }
+        }
+    ]
 }
 
 alias ll = eza --icons -l
@@ -132,4 +141,10 @@ alias ls = eza --icons
 
 def --env dev [] {
     cd ~/Documents/Dev
+}
+
+# Abre a configuração que contém o prompt. `$nu.env-path` resolve o diretório
+# correto do Nushell tanto no macOS quanto no Linux.
+def prompt-edit [] {
+    ^hx $nu.env-path
 }

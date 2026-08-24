@@ -3,14 +3,28 @@ $env.EDITOR = 'hx'
 $env.VIRTUAL_ENV_DISABLE_PROMPT = 'true'
 $env.NU_HOSTNAME = (^hostname | str trim | split row '.' | first)
 
+let pyenv_root = ($env.HOME | path join '.pyenv')
+if ($pyenv_root | path exists) {
+    $env.PYENV_ROOT = $pyenv_root
+}
+
+let swiftly_home = ($env.HOME | path join '.swiftly')
+if ($swiftly_home | path exists) {
+    $env.SWIFTLY_HOME_DIR = $swiftly_home
+    $env.SWIFTLY_BIN_DIR = ($swiftly_home | path join 'bin')
+}
+
 # Acrescenta apenas diretórios que existem na máquina atual.
 let user_paths = [
+    '/opt/homebrew/bin'
+    '/opt/homebrew/sbin'
     ($env.HOME | path join '.nix-profile' 'bin')
     ($env.HOME | path join '.swiftly' 'bin')
     ($env.HOME | path join '.cargo' 'bin')
     ($env.HOME | path join '.local' 'bin')
     ($env.HOME | path join '.ghcup' 'bin')
     ($env.HOME | path join '.pyenv' 'bin')
+    '/Applications/Docker.app/Contents/Resources/bin'
 ]
 $env.PATH = ($env.PATH | prepend ($user_paths | where {|path| $path | path exists }) | uniq)
 

@@ -24,7 +24,10 @@ let
   quickshellCtl = "${quickshellExe} -c fuleco ipc call";
 in
 {
-  imports = [ ./monitors.nix ];
+  imports = [
+    ./monitors.nix
+    ./screenshots.nix
+  ];
 
   options.hyprlandDesktop = {
     workspaceCount = lib.mkOption {
@@ -46,12 +49,10 @@ in
       brightnessctl
       cliphist
       hyprpicker
-      hyprshot
       imv
       libnotify
       mpv
       quickshell
-      tesseract
       wl-clipboard
     ];
 
@@ -104,9 +105,6 @@ in
           "SUPER, right, movefocus, r"
           "SUPER, up, movefocus, u"
           "SUPER, down, movefocus, d"
-          ", PRINT, exec, ${lib.getExe pkgs.hyprshot} -m output"
-          "SUPER, PRINT, exec, ${lib.getExe pkgs.hyprshot} -m window"
-          "SUPER SHIFT, PRINT, exec, ${lib.getExe pkgs.hyprshot} -m region"
           ", XF86AudioMute, exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle && ${quickshellCtl} osd show Audio"
           ", XF86AudioRaiseVolume, exec, wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+ && ${quickshellCtl} osd show Volume+"
           ", XF86AudioLowerVolume, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- && ${quickshellCtl} osd show Volume-"

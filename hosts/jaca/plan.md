@@ -98,6 +98,9 @@ Confirmado:
 - KDE Connect para parear o celular usando a stack Qt existente. O daemon roda
   junto da sessão gráfica para sincronizar clipboard, notificações e arquivos;
   o módulo NixOS abre somente o intervalo TCP/UDP exigido pelo protocolo.
+- screenshots usam Hyprshot para captura e Gradia para edição/anotação. Um
+  fluxo separado usa Tesseract em português e inglês para produzir PDFs
+  pesquisáveis e abri-los no visualizador padrão.
 
 ### Workspaces
 
@@ -126,14 +129,12 @@ A decidir, nesta ordem:
 3. autenticação declarativa do usuário físico; o login usa greetd/tuigreet e
    inicia Hyprland via UWSM, enquanto o bloqueio será feito pelo Hyprlock;
 4. backend do histórico de clipboard, integrado ao launcher;
-5. fluxo de screenshots: Hyprshot para captura e uma aplicação, ainda a
-   escolher ou desenvolver, com o conjunto de recursos do Flameshot e OCR;
-6. detalhes do ambiente de desenvolvimento. Aplicações confirmadas: Fuchico,
+5. detalhes do ambiente de desenvolvimento. Aplicações confirmadas: Fuchico,
    VS Code, Zed, Helix, TUIs usuais e Docker; ambientes de projeto virão do
    Nix;
-7. Discord nativo está confirmado; YouTube Music, WhatsApp e Telegram serão
+6. Discord nativo está confirmado; YouTube Music, WhatsApp e Telegram serão
    escolhidos entre Web/Tauri/nativo por caso;
-8. aplicações próprias.
+7. aplicações próprias.
 
 Os demais sites serão abertos pelo Helium. O launcher deverá consumir os
 favoritos do browser, evitando manter atalhos e favoritos em dois catálogos.
@@ -153,7 +154,7 @@ Portais e file picker serão tratados junto do futuro explorador de arquivos.
 | Lazygit | não incluir; usar Jujutsu sem TUI |
 | Lazydocker, btop, dua | incluir btop; futuras interfaces web para disco e Docker |
 | LocalSend | executar no servidor e disponibilizar pela tailnet |
-| Pinta e Disks | fora do núcleo; avaliar editor de imagem depois e não incluir Disks |
+| Pinta e Disks | Gradia para screenshots; avaliar editor geral depois e não incluir Disks |
 | Docker | requisito do ambiente de desenvolvimento |
 | Apps experimentais do Flathub | Flatpak Lab por usuário, com remoção automática |
 | Rede privada entre dispositivos | cliente Tailscale persistente, com login interativo inicial |
@@ -180,8 +181,9 @@ aplicações:
   Bluetooth, login, KDE Connect e Steam no nível do sistema;
 - `guiapps/linux-desktop.home.bundle.nix`: aplicações da sessão, associações
   XDG, Quickshell, KDE Connect e painel de uso das ferramentas de IA;
-- `guiapps/hyprland/`: atalhos, Hyprlock, Hyprshot, clipboard, greetd,
-  Quickshell e gerenciador declarativo e interativo de monitores;
+- `guiapps/hyprland/`: atalhos, Hyprlock, clipboard, greetd, Quickshell,
+  gerenciador declarativo e interativo de monitores e fluxo de screenshots
+  com Hyprshot, Gradia e OCR para PDF via Tesseract;
 - `guiapps/steam/system.nix`: Steam e correções usuais da comunidade NixOS,
   incluindo runtime 32-bit, Proton-GE, Protontricks, extest, GameMode,
   Gamescope, MangoHud, suporte a controles e transferências na rede local;
@@ -203,6 +205,12 @@ Os workspaces `1` a `5` representam as funções fixas já decididas; `6` é, po
 enquanto, o último workspace e aparece como `M`. A quantidade vem de
 `hyprlandDesktop.workspaceCount`, declarada pelo host e exportada pelo módulo
 compartilhado para o Quickshell.
+
+Os atalhos de screenshot preservam `Print`, `Super+Print` e
+`Super+Shift+Print` para capturas rápidas. `Ctrl+Print` e
+`Super+Ctrl+Print` enviam região ou janela ao Gradia; `Alt+Print` e
+`Super+Alt+Print` geram um PDF pesquisável de região ou janela em
+`Documentos/Screenshots/OCR`.
 
 O host físico continua exposto como `nixosModules.jaca`; o perfil testável é
 `nixosConfigurations.jaca-vm`. Para expor e instalar

@@ -1,0 +1,40 @@
+if (( $# != 1 )); then
+  echo "uso: screenshot-ocr <region|window|output>" >&2
+  exit 2
+fi
+
+mode="$1"
+case "$mode" in
+  region | window | output) ;;
+  *)
+    echo "modo de captura inválido: $mode" >&2
+    exit 2
+    ;;
+esac
+
+documents_dir="${XDG_DOCUMENTS_DIR:-}"
+if [[ -z "$documents_dir" ]]; then
+  documents_dir="$(xdg-user-dir DOCUMENTS 2>/dev/null || true)"
+fi
+if [[ -z "$documents_dir" || "$documents_dir" == "$HOME" ]]; then
+  documents_dir="$HOME/Documents"
+fi
+
+output_dir="$documents_dir/Screenshots/OCR"
+mkdir -p "$output_dir"
+
+timestamp="$(date +'%Y-%m-%d-%H%M%S')"
+output_base="$output_dir/${timestamp}_screenshot-ocr"
+pdf="$output_base.pdf"
+image="$(mktemp "${TMPDIR:-/tmp}/screenshot-ocr.XXXXXX.png")"
+
+cleanup() {
+  rm -f -- "$image"
+}
+trap cleanup EXIT HUP INT TERM
+
+hyprshot -m "$mode" --raw >"$image"
+tesseract "$image" "$output_base" -l por+eng pdf
+
+notify-send "OCR concluído" "PDF pesquisável salvo em $pdf" || true
+xdg-open "$pdf"

@@ -155,6 +155,7 @@ Portais e file picker serão tratados junto do futuro explorador de arquivos.
 | Pinta e Disks | fora do núcleo; avaliar editor de imagem depois e não incluir Disks |
 | Docker | requisito do ambiente de desenvolvimento |
 | Apps experimentais do Flathub | Flatpak Lab por usuário, com remoção automática |
+| Rede privada entre dispositivos | cliente Tailscale persistente, com login interativo inicial |
 
 ## Decisões
 
@@ -189,6 +190,8 @@ aplicações:
 - `services/flatpak-lab/`: fornece `app-try` para executar temporariamente IDs,
   URLs do Flathub ou arquivos `.flatpakref`; remove app, dados e runtimes não
   usados ao fechar e recupera limpezas interrompidas no próximo login;
+- `services/tailscale-client/`: mantém o Jaca conectado ao tailnet, prepara o
+  roteamento de cliente e preserva o login fora do Nix store;
 - `vm.nix`: perfil descartável `jaca-vm` em aarch64-linux para validar o host
   numa VM Linux em Apple Silicon.
 

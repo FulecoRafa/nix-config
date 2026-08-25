@@ -1,0 +1,37 @@
+state_root="${XDG_STATE_HOME:-$HOME/.local/state}/flatpak-lab"
+pending_dir="$state_root/pending"
+mkdir -p "$pending_dir"
+
+cleanup_id() {
+  local app_id="$1"
+  local marker="$pending_dir/$app_id"
+
+  if [[ ! "$app_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
+    echo "flatpak-lab-cleanup: ignorando marcador inválido: $app_id" >&2
+    return 1
+  fi
+
+  if flatpak info --user "$app_id" >/dev/null 2>&1; then
+    echo "Flatpak Lab: removendo $app_id e seus dados..."
+    if ! flatpak uninstall --user --assumeyes --delete-data "$app_id"; then
+      echo "flatpak-lab-cleanup: limpeza adiada para o próximo login: $app_id" >&2
+      return 1
+    fi
+  fi
+
+  rm -f -- "$marker"
+}
+
+if (( $# > 0 )); then
+  for app_id in "$@"; do
+    cleanup_id "$app_id" || true
+  done
+else
+  shopt -s nullglob
+  for marker in "$pending_dir"/*; do
+    cleanup_id "${marker##*/}" || true
+  done
+fi
+
+# Só remove runtimes e extensões que nenhum outro app do usuário utiliza.
+flatpak uninstall --user --assumeyes --unused || true

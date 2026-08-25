@@ -154,6 +154,7 @@ Portais e file picker serão tratados junto do futuro explorador de arquivos.
 | LocalSend | executar no servidor e disponibilizar pela tailnet |
 | Pinta e Disks | fora do núcleo; avaliar editor de imagem depois e não incluir Disks |
 | Docker | requisito do ambiente de desenvolvimento |
+| Apps experimentais do Flathub | Flatpak Lab por usuário, com remoção automática |
 
 ## Decisões
 
@@ -185,6 +186,9 @@ aplicações:
   dados sanitizados, sem expor OAuth tokens ao Quickshell;
 - `guiapps/kdeconnect/`: aplicação, firewall e daemon persistente da sessão;
 - `termapps/docker/system.nix`: daemon, limpeza automática e acesso do usuário;
+- `services/flatpak-lab/`: fornece `app-try` para executar temporariamente IDs,
+  URLs do Flathub ou arquivos `.flatpakref`; remove app, dados e runtimes não
+  usados ao fechar e recupera limpezas interrompidas no próximo login;
 - `vm.nix`: perfil descartável `jaca-vm` em aarch64-linux para validar o host
   numa VM Linux em Apple Silicon.
 

@@ -1,0 +1,100 @@
+if (( $# == 0 )); then
+  cat >&2 <<'EOF'
+uso: app-try APP_ID|URL_DO_FLATHUB|ARQUIVO.flatpakref [-- ARGUMENTOS]
+
+O aplicativo é instalado para o usuário, executado e removido com seus dados
+ao fechar. Aplicativos que já estavam instalados nunca são removidos.
+EOF
+  exit 2
+fi
+
+source_arg="$1"
+shift
+if [[ "${1:-}" == "--" ]]; then
+  shift
+fi
+
+temporary_ref=""
+install_kind="flathub"
+install_source="$source_arg"
+
+finish_temp() {
+  if [[ -n "$temporary_ref" ]]; then
+    rm -f -- "$temporary_ref"
+  fi
+}
+trap finish_temp EXIT
+
+read_ref_id() {
+  awk -F= '$1 == "Name" { sub(/\r$/, "", $2); print $2; exit }' "$1"
+}
+
+case "$source_arg" in
+  http://*.flatpakref | https://*.flatpakref)
+    temporary_ref="$(mktemp "${TMPDIR:-/tmp}/flatpak-lab.XXXXXX.flatpakref")"
+    curl --fail --location --show-error --silent "$source_arg" --output "$temporary_ref"
+    install_kind="ref"
+    install_source="$temporary_ref"
+    app_id="$(read_ref_id "$temporary_ref")"
+    ;;
+  *.flatpakref)
+    if [[ ! -f "$source_arg" ]]; then
+      echo "app-try: arquivo inexistente: $source_arg" >&2
+      exit 2
+    fi
+    install_kind="ref"
+    app_id="$(read_ref_id "$source_arg")"
+    ;;
+  http://flathub.org/apps/* | https://flathub.org/apps/*)
+    page="${source_arg%%[?#]*}"
+    page="${page%/}"
+    app_id="${page##*/}"
+    ;;
+  *)
+    app_id="$source_arg"
+    ;;
+esac
+
+if [[ ! "$app_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
+  echo "app-try: ID Flatpak inválido: ${app_id:-<vazio>}" >&2
+  exit 2
+fi
+
+# Um app preexistente não pertence ao laboratório e nunca deve ser removido.
+if flatpak info --user "$app_id" >/dev/null 2>&1; then
+  echo "app-try: $app_id já estava instalado; executando sem limpeza." >&2
+  flatpak run "$app_id" "$@"
+  exit $?
+fi
+
+state_root="${XDG_STATE_HOME:-$HOME/.local/state}/flatpak-lab"
+pending_dir="$state_root/pending"
+marker="$pending_dir/$app_id"
+mkdir -p "$pending_dir"
+install -m 0600 /dev/null "$marker"
+
+cleanup_trial() {
+  status=$?
+  trap - EXIT HUP INT TERM
+  "$FLATPAK_LAB_CLEANUP" "$app_id" || true
+  finish_temp
+  exit "$status"
+}
+trap cleanup_trial EXIT
+trap 'exit 130' HUP INT TERM
+
+if [[ "$install_kind" == "ref" ]]; then
+  flatpak install --user --assumeyes "$install_source"
+else
+  flatpak remote-add --user --if-not-exists \
+    flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+  flatpak install --user --assumeyes flathub "$app_id"
+fi
+
+echo
+echo "Permissões declaradas por $app_id:"
+flatpak info --user --show-permissions "$app_id" || true
+echo
+echo "O Flatpak Lab removerá o aplicativo e seus dados quando ele fechar."
+
+flatpak run "$app_id" "$@"

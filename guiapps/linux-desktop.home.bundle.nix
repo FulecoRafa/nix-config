@@ -11,6 +11,7 @@
     ./hyprland
     ./kdeconnect
     (root + /termapps/ai-usage)
+    (root + /services/flatpak-lab)
   ];
 
   home.packages = with pkgs; [

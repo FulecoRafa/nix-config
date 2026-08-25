@@ -8,6 +8,7 @@
 {
   imports = [
     ./default.nix
+    ./discord.nix
     ./hyprland
     ./kdeconnect
     (root + /termapps/ai-usage)

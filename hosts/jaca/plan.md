@@ -131,7 +131,8 @@ A decidir, nesta ordem:
 6. detalhes do ambiente de desenvolvimento. Aplicações confirmadas: Fuchico,
    VS Code, Zed, Helix, TUIs usuais e Docker; ambientes de projeto virão do
    Nix;
-7. YouTube Music, WhatsApp e Telegram, escolhendo Web/Tauri/nativo por caso;
+7. Discord nativo está confirmado; YouTube Music, WhatsApp e Telegram serão
+   escolhidos entre Web/Tauri/nativo por caso;
 8. aplicações próprias.
 
 Os demais sites serão abertos pelo Helium. O launcher deverá consumir os
@@ -156,6 +157,7 @@ Portais e file picker serão tratados junto do futuro explorador de arquivos.
 | Docker | requisito do ambiente de desenvolvimento |
 | Apps experimentais do Flathub | Flatpak Lab por usuário, com remoção automática |
 | Rede privada entre dispositivos | cliente Tailscale persistente, com login interativo inicial |
+| Comunicação por voz e comunidades | cliente oficial do Discord via nixpkgs |
 
 ## Decisões
 
@@ -186,6 +188,8 @@ aplicações:
 - `termapps/ai-usage/`: instala Claude Code e Codex e fornece à barra somente
   dados sanitizados, sem expor OAuth tokens ao Quickshell;
 - `guiapps/kdeconnect/`: aplicação, firewall e daemon persistente da sessão;
+- `guiapps/discord.nix`: cliente oficial do Discord, atualizado exclusivamente
+  pelo Nix e executado em Wayland pelo wrapper do nixpkgs;
 - `termapps/docker/system.nix`: daemon, limpeza automática e acesso do usuário;
 - `services/flatpak-lab/`: fornece `app-try` para executar temporariamente IDs,
   URLs do Flathub ou arquivos `.flatpakref`; remove app, dados e runtimes não

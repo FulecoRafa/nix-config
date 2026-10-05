@@ -1,9 +1,17 @@
 import Quickshell
 
 ShellRoot {
+    Wallpaper {}
     Bar {}
+    NotificationCenter {}
+    ControlCenter {}
+    ActionStrip {}
     Launcher {}
+    Drawer {}
+    AiPanel {}
     MonitorManager {}
-    Notifications {}
     Osd {}
+    Hud {}
+    Ipc {}
+    PolkitAgent {}
 }

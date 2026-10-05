@@ -2,426 +2,562 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Hyprland
-import Quickshell.Io
+import Quickshell.Wayland
 
+// Barra flutuante do topo: logo, workspaces, apps, uso de IA, CPU,
+// status, calendário e relógio. Os painéis "pendurados" nascem dela.
 Scope {
     id: root
 
     readonly property int workspaceCount: Number(Quickshell.env("HYPRLAND_WORKSPACE_COUNT") || "6")
-    readonly property string iconFont: "CaskaydiaCove Nerd Font"
-    property var aiUsage: ({})
 
-    function limitText(limit: var): string {
-        if (!limit || typeof limit.usedPercent !== "number") return "—"
-        return Math.round(limit.usedPercent) + "%"
-    }
+    // Apps fixos. `match` casa com o app-id das janelas abertas.
+    readonly property var pinned: [
+        { icon: "compass", color: Theme.cyan, match: /helium|chrom|firefox|zen/i, command: ["helium"] },
+        { icon: "terminal-window", color: Theme.green, match: /ghostty|kitty|foot|alacritty/i, command: ["ghostty"] },
+        { icon: "folder", color: Theme.yellow, match: /yazi|nautilus|thunar|dolphin/i, command: ["ghostty", "--class=fuleco.yazi", "-e", "yazi"] },
+        { icon: "magnifying-glass", color: Theme.yellow, panel: "launcher" },
+        { icon: "squares-four", color: Theme.purple, panel: "drawer" }
+    ]
 
-    function codexText(): string {
-        const codex = aiUsage.codex
-        if (!codex?.available) return "login"
-        return limitText(codex.primary)
-    }
-
-    function claudeText(): string {
-        const claude = aiUsage.claude
-        if (!claude?.available) return "use uma vez"
-        const limits = claude.limits || {}
-        const parts = []
-        if (limits.five_hour) parts.push("5h " + limitText(limits.five_hour))
-        if (limits.seven_day) parts.push("7d " + limitText(limits.seven_day))
-        return parts.length > 0 ? parts.join(" · ") : "—"
-    }
-
-    function resetText(limit: var): string {
-        if (!limit || limit.resetsAt === null || limit.resetsAt === undefined) return "Reset não informado"
-        const raw = limit.resetsAt
-        const reset = typeof raw === "number" ? new Date(raw * 1000) : new Date(raw)
-        if (isNaN(reset.getTime())) return "Reset não informado"
-
-        const remaining = reset.getTime() - Date.now()
-        if (remaining <= 0) return "Janela reiniciada; atualize os dados"
-        const minutes = Math.ceil(remaining / 60000)
-        const relative = minutes < 60
-            ? minutes + " min"
-            : minutes < 1440
-                ? Math.ceil(minutes / 60) + " h"
-                : Math.ceil(minutes / 1440) + " d"
-        return "󰥔 reinicia em " + relative + " · " + Qt.formatDateTime(reset, "ddd HH:mm")
-    }
-
-    function codexWindowTitle(limit: var, fallback: string): string {
-        const minutes = limit?.windowDurationMins
-        if (minutes === 300) return "Sessão atual (5 horas)"
-        if (minutes === 10080) return "Semana atual"
-        if (typeof minutes === "number") return "Janela de " + minutes + " minutos"
-        return fallback
-    }
-
-    function updatedText(): string {
-        const codexTime = aiUsage.codex?.updatedAt || 0
-        const claudeTime = aiUsage.claude?.updatedAt || 0
-        const newest = Math.max(codexTime, claudeTime)
-        if (newest === 0) return "Sem dados de uso"
-        return "Atualizado " + Qt.formatDateTime(new Date(newest * 1000), "ddd HH:mm")
-    }
-
-    function refreshAiUsage(): void {
-        if (!usageLoader.running) usageLoader.running = true
-    }
-
-    Process {
-        id: usageLoader
-        command: ["ai-usage", "show"]
-
-        stdout: StdioCollector {
-            onStreamFinished: {
-                try {
-                    root.aiUsage = JSON.parse(this.text)
-                } catch (error) {
-                    root.aiUsage = {}
-                }
+    // Fixados pelo lançador (ctrl+p): "tui:nome" ou o id do .desktop.
+    readonly property var tuiIcons: ({ wifitui: "wifi-high", btop: "gauge", yazi: "folder", calcure: "calendar-dots", wiremix: "faders", bluetui: "bluetooth" })
+    readonly property var userPins: {
+        const result = []
+        for (const id of Store.data.pinned ?? []) {
+            if (id.startsWith("tui:")) {
+                const name = id.slice(4)
+                result.push({ icon: tuiIcons[name] ?? "terminal-window", color: Theme.green, match: new RegExp("^fuleco\\." + name + "$"), command: ["ghostty", "--class=fuleco." + name, "-e", name] })
+                continue
             }
+            const entry = DesktopEntries.byId(id)
+            if (!entry) continue
+            const base = id.replace(/\.desktop$/, "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+            result.push({ iconSource: Quickshell.iconPath(entry.icon, "application-x-executable"), color: Theme.cyan, match: new RegExp("^" + base + "$", "i"), entry: entry })
         }
+        return result
+    }
+    readonly property var allPinned: [...pinned.slice(0, 3), ...userPins, ...pinned.slice(3)]
+
+    readonly property var toplevels: ToplevelManager.toplevels.values
+
+    function windowsFor(app: var): var {
+        if (!app.match) return []
+        return toplevels.filter(toplevel => app.match.test(toplevel.appId))
     }
 
-    Timer {
-        interval: 300000
-        running: true
-        repeat: true
-        triggeredOnStart: true
-        onTriggered: root.refreshAiUsage()
+    function activatePinned(app: var): void {
+        if (app.panel) {
+            ShellState.toggle(app.panel)
+            return
+        }
+        const windows = windowsFor(app)
+        if (windows.length === 0) {
+            if (app.entry) app.entry.execute()
+            else Quickshell.execDetached(app.command)
+            return
+        }
+        // Clique repetido alterna entre as janelas do mesmo app.
+        const current = windows.findIndex(toplevel => toplevel.activated)
+        windows[(current + 1) % windows.length].activate()
     }
 
-    component UsageMeter: ColumnLayout {
-        required property string title
-        required property var limit
+    // Janelas abertas que não pertencem a nenhum app fixo.
+    readonly property var extraApps: {
+        const seen = {}
+        const result = []
+        for (const toplevel of toplevels) {
+            const id = toplevel.appId
+            if (!id || seen[id]) continue
+            if (allPinned.some(app => app.match && app.match.test(id))) continue
+            seen[id] = true
+            result.push(id)
+        }
+        return result
+    }
 
-        readonly property real percentage: limit && typeof limit.usedPercent === "number"
-            ? Math.max(0, Math.min(100, limit.usedPercent))
-            : 0
+    component Divider: Rectangle {
+        implicitWidth: 1
+        implicitHeight: 22
+        color: Theme.divider
+    }
 
-        visible: limit !== null && limit !== undefined
-        Layout.fillWidth: true
-        spacing: 4
+    component AppTile: Item {
+        id: tile
 
-        RowLayout {
-            Layout.fillWidth: true
+        property string icon
+        property string iconSource
+        property color accent: Theme.cyan
+        property bool active: false
+        property bool running: false
+        signal clicked
 
-            Text {
-                text: title
-                color: "#e8eaed"
-                font.pixelSize: 13
-            }
+        implicitWidth: 34
+        implicitHeight: 34
 
-            Item { Layout.fillWidth: true }
+        Rectangle {
+            anchors.fill: parent
+            radius: 12
+            color: tile.active ? Theme.surfaceBorder : hover.hovered ? "#2A303C" : "transparent"
+            Behavior on color { ColorAnimation { duration: Theme.fast } }
+        }
 
-            Text {
-                text: root.limitText(limit)
-                color: "#e8eaed"
-                font.bold: true
-            }
+        Icon {
+            anchors.centerIn: parent
+            visible: tile.iconSource === ""
+            name: tile.icon
+            size: 18
+            color: tile.active ? tile.accent : Theme.textMuted
+            Behavior on color { ColorAnimation { duration: Theme.fast } }
+        }
+
+        Image {
+            anchors.centerIn: parent
+            visible: tile.iconSource !== ""
+            width: 18
+            height: 18
+            sourceSize: Qt.size(36, 36)
+            source: tile.iconSource
+            opacity: tile.active ? 1 : 0.75
         }
 
         Rectangle {
-            Layout.fillWidth: true
-            implicitHeight: 7
-            radius: 4
-            color: "#3c4043"
-
-            Rectangle {
-                width: parent.width * percentage / 100
-                height: parent.height
-                radius: parent.radius
-                color: percentage >= 90 ? "#f28b82" : percentage >= 70 ? "#fdd663" : "#8ab4f8"
-            }
+            visible: tile.running
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 2
+            width: 4
+            height: 4
+            radius: 3
+            color: tile.active ? tile.accent : Theme.dim
         }
 
-        Text {
-            text: root.resetText(limit)
-            color: "#9aa0a6"
-            font.family: root.iconFont
-            font.pixelSize: 11
+        HoverHandler { id: hover; cursorShape: Qt.PointingHandCursor }
+        TapHandler { onTapped: tile.clicked() }
+    }
+
+    component StatusIcon: Item {
+        id: status
+
+        property string icon
+        property color tint: Theme.textMuted
+        signal clicked
+
+        implicitWidth: 17
+        implicitHeight: 22
+
+        Icon {
+            anchors.centerIn: parent
+            name: status.icon
+            size: 17
+            color: status.tint
+            opacity: hover.hovered ? 0.8 : 1
         }
+
+        HoverHandler { id: hover; cursorShape: Qt.PointingHandCursor }
+        TapHandler { onTapped: status.clicked() }
     }
 
     Variants {
         model: Quickshell.screens
 
-        delegate: Component {
-            PanelWindow {
-                id: bar
+        PanelWindow {
+            id: bar
 
-                required property var modelData
+            required property var modelData
 
-                screen: modelData
-                implicitHeight: 32
-                color: "transparent"
+            IdleInhibitor {
+                window: bar
+                enabled: ShellState.caffeine
+            }
+            readonly property bool isPanelScreen: ShellState.screen === modelData
 
-                anchors {
-                    top: true
-                    left: true
-                    right: true
-                }
+            screen: modelData
+            color: "transparent"
+            implicitHeight: Theme.barBottom
+            WlrLayershell.namespace: "fuleco-bar"
 
-                Rectangle {
+            Component.onCompleted: ShellState.barWindows = [...ShellState.barWindows, bar]
+            Component.onDestruction: ShellState.barWindows = ShellState.barWindows.filter(w => w !== bar)
+
+            anchors {
+                top: true
+                left: true
+                right: true
+            }
+
+            Rectangle {
+                id: shape
+
+                x: Theme.gap
+                y: Theme.barMargin
+                width: parent.width - 2 * Theme.gap
+                height: Theme.barHeight
+                radius: Theme.barRadius
+                color: Theme.surface
+                border.color: Theme.surfaceBorder
+
+                RowLayout {
                     anchors.fill: parent
-                    color: "#202124"
+                    anchors.leftMargin: 12
+                    anchors.rightMargin: 14
+                    spacing: 14
 
-                    RowLayout {
-                        anchors.fill: parent
-                        anchors.leftMargin: 10
-                        anchors.rightMargin: 10
+                    // Logo (floco do NixOS): abre a central de controle.
+                    Item {
+                        implicitWidth: 28
+                        implicitHeight: 28
+                        scale: logoHover.hovered ? 1.08 : 1
+                        rotation: logoHover.hovered ? 30 : 0
+                        Behavior on scale { NumberAnimation { duration: Theme.fast } }
+                        Behavior on rotation { NumberAnimation { duration: Theme.normal; easing.type: Theme.easing } }
 
-                        Row {
-                            spacing: 4
+                        Image {
+                            anchors.fill: parent
+                            source: "nix-snowflake.svg"
+                            sourceSize: Qt.size(56, 56)
+                            smooth: true
+                        }
 
-                            Repeater {
-                                model: root.workspaceCount
+                        HoverHandler { id: logoHover; cursorShape: Qt.PointingHandCursor }
+                        TapHandler { onTapped: ShellState.toggle("control") }
+                    }
 
-                                delegate: Rectangle {
-                                    required property int index
+                    // Workspaces: pílula longa amarela na ativa, cianas nas
+                    // ocupadas, pontos nas vazias.
+                    Row {
+                        spacing: 7
 
-                                    readonly property int workspaceId: index + 1
+                        Repeater {
+                            model: root.workspaceCount
 
-                                    width: 24
-                                    height: 24
-                                    radius: 6
-                                    color: Hyprland.focusedWorkspace?.id === workspaceId ? "#e8eaed" : "transparent"
+                            Rectangle {
+                                id: pill
 
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: parent.workspaceId === root.workspaceCount ? "M" : parent.workspaceId
-                                        color: Hyprland.focusedWorkspace?.id === parent.workspaceId ? "#202124" : "#e8eaed"
-                                    }
+                                required property int index
+                                readonly property int workspaceId: index + 1
+                                readonly property var workspace: Hyprland.workspaces.values.find(w => w.id === workspaceId) ?? null
+                                readonly property bool focused: bar.modelData.name === Hyprland.focusedMonitor?.name
+                                    ? Hyprland.focusedWorkspace?.id === workspaceId
+                                    : workspace?.monitor?.name === bar.modelData.name && workspace?.active === true
+                                readonly property bool occupied: (workspace?.toplevels?.values?.length ?? 0) > 0
 
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        onClicked: Hyprland.dispatch("workspace " + parent.workspaceId)
-                                    }
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: focused ? 24 : occupied ? 12 : 6
+                                height: 6
+                                radius: 4
+                                color: focused ? Theme.yellow : occupied ? Theme.cyan : Theme.dimmer
+
+                                Behavior on width { NumberAnimation { duration: Theme.normal; easing.type: Theme.easing } }
+                                Behavior on color { ColorAnimation { duration: Theme.normal } }
+
+                                TapHandler {
+                                    margin: 6
+                                    onTapped: Hyprland.dispatch("workspace " + pill.workspaceId)
                                 }
+                                HoverHandler { margin: 6; cursorShape: Qt.PointingHandCursor }
                             }
                         }
 
-                        Item { Layout.fillWidth: true }
+                        WheelHandler {
+                            onWheel: event => Hyprland.dispatch(event.angleDelta.y > 0 ? "workspace r-1" : "workspace r+1")
+                        }
+                    }
+
+                    Divider {}
+
+                    Row {
+                        spacing: 6
+
+                        Repeater {
+                            model: root.allPinned
+
+                            AppTile {
+                                required property var modelData
+                                readonly property var windows: root.windowsFor(modelData)
+
+                                icon: modelData.icon ?? ""
+                                iconSource: modelData.iconSource ?? ""
+                                accent: modelData.color
+                                running: windows.length > 0
+                                active: modelData.panel
+                                    ? ShellState.panel === modelData.panel
+                                    : windows.some(toplevel => toplevel.activated)
+                                onClicked: root.activatePinned(modelData)
+                            }
+                        }
+
+                        Repeater {
+                            model: root.extraApps
+
+                            AppTile {
+                                required property string modelData
+                                readonly property var windows: root.toplevels.filter(t => t.appId === modelData)
+                                readonly property var entry: DesktopEntries.heuristicLookup(modelData)
+
+                                iconSource: Quickshell.iconPath(entry?.icon ?? modelData, "application-x-executable")
+                                running: true
+                                active: windows.some(toplevel => toplevel.activated)
+                                onClicked: {
+                                    const current = windows.findIndex(toplevel => toplevel.activated)
+                                    windows[(current + 1) % windows.length].activate()
+                                }
+                            }
+                        }
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    // Chip de IA: cc = sessão do Claude, cx = Codex.
+                    Rectangle {
+                        id: aiChip
+
+                        readonly property real claude: AiUsage.percent(AiUsage.claudeSession)
+                        readonly property real codex: AiUsage.percent(AiUsage.codexPrimary)
+                        readonly property bool hot: Math.max(claude, codex) >= 90
+
+                        implicitWidth: aiRow.implicitWidth + 20
+                        implicitHeight: 26
+                        radius: 13
+                        color: ShellState.panel === "ai" ? Theme.surfaceBorder : Theme.raisedAlt
+                        border.color: hot ? Theme.red : Theme.raisedAlt
+
+                        SequentialAnimation on opacity {
+                            running: aiChip.hot
+                            loops: Animation.Infinite
+                            alwaysRunToEnd: true
+                            NumberAnimation { to: 0.55; duration: 700; easing.type: Easing.InOutSine }
+                            NumberAnimation { to: 1; duration: 700; easing.type: Easing.InOutSine }
+                        }
+
+                        Row {
+                            id: aiRow
+
+                            anchors.centerIn: parent
+                            spacing: 10
+
+                            Icon {
+                                anchors.verticalCenter: parent.verticalCenter
+                                name: "gauge"
+                                size: 14
+                                color: Theme.orange
+                            }
+
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                textFormat: Text.StyledText
+                                text: "cc <font color='" + (aiChip.claude < 0 ? Theme.textFaint : Theme.usageColor(aiChip.claude)) + "'>"
+                                    + AiUsage.percentText(AiUsage.claudeSession) + "</font>"
+                                color: Theme.text
+                                font.family: Theme.font
+                                font.pixelSize: 12
+                            }
+
+                            Rectangle {
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: 1
+                                height: 13
+                                color: Theme.dimmer
+                            }
+
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                textFormat: Text.StyledText
+                                text: "cx <font color='" + (aiChip.codex < 0 ? Theme.textFaint : Theme.usageColor(aiChip.codex)) + "'>"
+                                    + AiUsage.percentText(AiUsage.codexPrimary) + "</font>"
+                                color: Theme.text
+                                font.family: Theme.font
+                                font.pixelSize: 12
+                            }
+
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                visible: text !== ""
+                                text: AiUsage.remainingText(AiUsage.claudeSession) || AiUsage.remainingText(AiUsage.codexPrimary)
+                                color: Theme.textFaint
+                                font.family: Theme.font
+                                font.pixelSize: 11
+                            }
+                        }
+
+                        HoverHandler { cursorShape: Qt.PointingHandCursor }
+                        TapHandler {
+                            onTapped: {
+                                AiUsage.refresh()
+                                ShellState.toggle("ai")
+                            }
+                        }
+                    }
+
+                    // Medidor circular de CPU.
+                    Item {
+                        implicitWidth: 32
+                        implicitHeight: 32
+
+                        Canvas {
+                            id: gauge
+
+                            property real value: SysInfo.cpu
+                            anchors.fill: parent
+                            onValueChanged: requestPaint()
+
+                            onPaint: {
+                                const ctx = getContext("2d")
+                                ctx.reset()
+                                ctx.lineWidth = 3.5
+                                ctx.lineCap = "round"
+                                ctx.strokeStyle = Theme.surfaceBorder
+                                ctx.beginPath()
+                                ctx.arc(16, 16, 13, 0, 2 * Math.PI)
+                                ctx.stroke()
+                                if (value > 0) {
+                                    ctx.strokeStyle = value >= 85 ? Theme.red : value >= 60 ? Theme.orange : Theme.cyan
+                                    ctx.beginPath()
+                                    ctx.arc(16, 16, 13, -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI * Math.min(value, 100) / 100)
+                                    ctx.stroke()
+                                }
+                            }
+                        }
 
                         Text {
-                            color: "#e8eaed"
-                            text: Qt.formatDateTime(clock.date, "ddd d MMM  HH:mm")
+                            anchors.centerIn: parent
+                            text: Math.round(SysInfo.cpu)
+                            color: Theme.text
+                            font.family: Theme.font
+                            font.pixelSize: 10
+                        }
 
-                            SystemClock {
-                                id: clock
-                                precision: SystemClock.Minutes
+                        HoverHandler { cursorShape: Qt.PointingHandCursor }
+                        TapHandler { onTapped: Quickshell.execDetached(["ghostty", "-e", "btop"]) }
+                    }
+
+                    // Bandeja dos apps (Discord etc.); some quando vazia.
+                    Tray { id: tray; window: bar }
+                    Divider { visible: tray.visible }
+
+                    Row {
+                        spacing: 14
+
+                        StatusIcon {
+                            icon: Net.icon
+                            tint: Net.online ? Theme.cyan : Theme.textMuted
+                            onClicked: ShellState.openControl("rede")
+                        }
+
+                        StatusIcon {
+                            visible: Net.adapter !== null
+                            icon: Net.bluetoothConnected.length > 0 ? "bluetooth-connected" : Net.bluetoothEnabled ? "bluetooth" : "bluetooth-slash"
+                            tint: Net.bluetoothConnected.length > 0 ? Theme.cyan : Theme.textMuted
+                            onClicked: ShellState.openControl("rede")
+                        }
+
+                        StatusIcon {
+                            icon: Audio.muted ? "speaker-x" : Audio.volume > 0.66 ? "speaker-high" : Audio.volume > 0 ? "speaker-low" : "speaker-none"
+                            onClicked: ShellState.openControl("som")
+
+                            WheelHandler {
+                                onWheel: event => Audio.setVolume(Audio.volume + (event.angleDelta.y > 0 ? 0.05 : -0.05))
                             }
                         }
 
-                        Item { Layout.fillWidth: true }
+                        StatusIcon {
+                            icon: NotifService.dnd ? "bell-slash" : "bell"
+                            tint: ShellState.panel === "notifications" ? Theme.yellow : Theme.textMuted
+                            onClicked: ShellState.toggle("notifications")
 
-                        Row {
-                            spacing: 12
+                            Rectangle {
+                                visible: NotifService.count > 0
+                                x: parent.width - 9
+                                y: -1
+                                width: Math.max(14, badgeText.implicitWidth + 6)
+                                height: 14
+                                radius: 8
+                                color: Theme.red
+
+                                Text {
+                                    id: badgeText
+                                    anchors.centerIn: parent
+                                    text: NotifService.count > 9 ? "9+" : NotifService.count
+                                    color: Theme.onAccent
+                                    font.family: Theme.font
+                                    font.pixelSize: 9
+                                }
+                            }
+                        }
+
+                        StatusIcon {
+                            visible: Net.hasBattery
+                            icon: Net.batteryIcon
+                            tint: Net.batteryColor
+                            onClicked: ShellState.toggle("drawer")
+                        }
+                    }
+
+                    Divider {}
+
+                    Row {
+                        spacing: 12
+
+                        Rectangle {
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: Agenda.todayCount > 0
+                            implicitWidth: calendarRow.implicitWidth + 18
+                            implicitHeight: 20
+                            radius: 10
+                            color: Theme.purpleTint
 
                             Row {
-                                id: aiIndicator
-                                spacing: 7
+                                id: calendarRow
+                                anchors.centerIn: parent
+                                spacing: 4
 
-                                Text {
-                                    text: "󰚩"
-                                    color: "#e8eaed"
-                                    font.family: root.iconFont
-                                }
-                                Text { text: root.codexText(); color: "#e8eaed" }
-
-                                Rectangle {
-                                    width: 1
-                                    height: 16
-                                    color: "#5f6368"
+                                Icon {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    name: "calendar-dots"
+                                    size: 12
+                                    color: Theme.purple
                                 }
 
                                 Text {
-                                    text: "󰧑"
-                                    color: "#e8eaed"
-                                    font.family: root.iconFont
-                                }
-                                Text { text: root.claudeText(); color: "#e8eaed" }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        usagePopup.visible = !usagePopup.visible
-                                        root.refreshAiUsage()
-                                    }
-                                }
-
-                                PopupWindow {
-                                    id: usagePopup
-
-                                    width: 410
-                                    height: usageCard.implicitHeight + 24
-                                    color: "transparent"
-                                    grabFocus: true
-
-                                    anchor {
-                                        item: aiIndicator
-                                        edges: Edges.Bottom | Edges.Right
-                                        gravity: Edges.Bottom | Edges.Left
-                                        margins.top: 7
-                                    }
-
-                                    Rectangle {
-                                        anchors.fill: parent
-                                        radius: 14
-                                        color: "#202124"
-                                        border.color: "#3c4043"
-
-                                        ColumnLayout {
-                                            id: usageCard
-
-                                            x: 14
-                                            y: 12
-                                            width: parent.width - 28
-                                            spacing: 12
-
-                                            RowLayout {
-                                                Layout.fillWidth: true
-
-                                                Text {
-                                                    text: "󰓅  Uso de agentes"
-                                                    color: "#e8eaed"
-                                                    font.family: root.iconFont
-                                                    font.pixelSize: 17
-                                                    font.bold: true
-                                                }
-
-                                                Item { Layout.fillWidth: true }
-
-                                                Text {
-                                                    text: "󰑐"
-                                                    color: "#e8eaed"
-                                                    font.family: root.iconFont
-                                                    font.pixelSize: 17
-
-                                                    MouseArea {
-                                                        anchors.fill: parent
-                                                        anchors.margins: -7
-                                                        cursorShape: Qt.PointingHandCursor
-                                                        onClicked: root.refreshAiUsage()
-                                                    }
-                                                }
-                                            }
-
-                                            RowLayout {
-                                                Layout.fillWidth: true
-
-                                                Text {
-                                                    text: "󰚩  Codex"
-                                                    color: "#e8eaed"
-                                                    font.family: root.iconFont
-                                                    font.pixelSize: 15
-                                                    font.bold: true
-                                                }
-
-                                                Item { Layout.fillWidth: true }
-
-                                                Text {
-                                                    visible: root.aiUsage.codex?.available === true
-                                                    text: root.aiUsage.codex?.planType || ""
-                                                    color: "#9aa0a6"
-                                                    font.capitalization: Font.Capitalize
-                                                }
-                                            }
-
-                                            Text {
-                                                visible: !root.aiUsage.codex?.available
-                                                Layout.fillWidth: true
-                                                text: "Execute codex login no terminal."
-                                                color: "#9aa0a6"
-                                            }
-
-                                            UsageMeter {
-                                                title: root.codexWindowTitle(root.aiUsage.codex?.primary, "Limite principal")
-                                                limit: root.aiUsage.codex?.primary || null
-                                            }
-
-                                            UsageMeter {
-                                                title: root.codexWindowTitle(root.aiUsage.codex?.secondary, "Limite secundário")
-                                                limit: root.aiUsage.codex?.secondary || null
-                                            }
-
-                                            Text {
-                                                visible: root.aiUsage.codex?.credits?.hasCredits === true
-                                                Layout.fillWidth: true
-                                                text: "Créditos disponíveis: " + (root.aiUsage.codex?.credits?.balance || "0")
-                                                color: "#bdc1c6"
-                                            }
-
-                                            Text {
-                                                visible: (root.aiUsage.codex?.availableResetCredits || 0) > 0
-                                                Layout.fillWidth: true
-                                                text: "󰑐  Resets gratuitos disponíveis: " + root.aiUsage.codex.availableResetCredits
-                                                color: "#bdc1c6"
-                                                font.family: root.iconFont
-                                            }
-
-                                            Rectangle {
-                                                Layout.fillWidth: true
-                                                implicitHeight: 1
-                                                color: "#3c4043"
-                                            }
-
-                                            Text {
-                                                text: "󰧑  Claude Code"
-                                                color: "#e8eaed"
-                                                font.family: root.iconFont
-                                                font.pixelSize: 15
-                                                font.bold: true
-                                            }
-
-                                            Text {
-                                                visible: !root.aiUsage.claude?.available
-                                                Layout.fillWidth: true
-                                                text: "Faça login e conclua uma interação no Claude Code."
-                                                color: "#9aa0a6"
-                                                wrapMode: Text.WordWrap
-                                            }
-
-                                            UsageMeter {
-                                                title: "Sessão atual (5 horas)"
-                                                limit: root.aiUsage.claude?.limits?.five_hour || null
-                                            }
-
-                                            UsageMeter {
-                                                title: "Semana atual (todos os modelos)"
-                                                limit: root.aiUsage.claude?.limits?.seven_day || null
-                                            }
-
-                                            UsageMeter {
-                                                title: "Semana atual (Sonnet)"
-                                                limit: root.aiUsage.claude?.limits?.seven_day_sonnet || null
-                                            }
-
-                                            UsageMeter {
-                                                title: "Semana atual (Opus)"
-                                                limit: root.aiUsage.claude?.limits?.seven_day_opus || null
-                                            }
-
-                                            Text {
-                                                Layout.fillWidth: true
-                                                text: root.updatedText()
-                                                color: "#9aa0a6"
-                                                horizontalAlignment: Text.AlignRight
-                                                font.pixelSize: 11
-                                            }
-                                        }
-                                    }
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: Agenda.todayCount
+                                    color: Theme.purple
+                                    font.family: Theme.font
+                                    font.pixelSize: 11
                                 }
                             }
 
-                            Text { text: "󰖩"; color: "#e8eaed"; font.family: root.iconFont }
-                            Text { text: "󰕾"; color: "#e8eaed"; font.family: root.iconFont }
-                            Text { text: "󰐥"; color: "#e8eaed"; font.family: root.iconFont }
+                            HoverHandler { cursorShape: Qt.PointingHandCursor }
+                            TapHandler { onTapped: ShellState.toggle("drawer") }
+                        }
+
+                        Column {
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            Text {
+                                text: Qt.formatDateTime(clock.date, "HH:mm")
+                                color: Theme.textBright
+                                font.family: Theme.font
+                                font.pixelSize: 13
+                            }
+
+                            Text {
+                                text: Theme.date(clock.date, "ddd dd MMM")
+                                color: Theme.textFaint
+                                font.family: Theme.font
+                                font.pixelSize: 9
+                            }
+
+                            HoverHandler { cursorShape: Qt.PointingHandCursor }
+                            TapHandler { onTapped: ShellState.toggle("power") }
                         }
                     }
                 }
+            }
+
+            SystemClock {
+                id: clock
+                precision: SystemClock.Minutes
             }
         }
     }

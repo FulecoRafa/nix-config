@@ -60,6 +60,9 @@ def cache_claude_statusline() -> int:
     except (json.JSONDecodeError, OSError):
         return 1
 
+    model = payload.get("model", {})
+    model_name = model.get("display_name", "Claude") if isinstance(model, dict) else "Claude"
+
     limits = payload.get("rate_limits")
     if isinstance(limits, dict):
         sanitized = {
@@ -73,12 +76,11 @@ def cache_claude_statusline() -> int:
                 {
                     "available": True,
                     "updatedAt": int(time.time()),
+                    "model": model_name,
                     "limits": sanitized,
                 },
             )
 
-    model = payload.get("model", {})
-    model_name = model.get("display_name", "Claude") if isinstance(model, dict) else "Claude"
     current_directory = payload.get("workspace", {}).get("current_dir", "")
     directory_name = Path(current_directory).name if current_directory else ""
     five_hour = sanitize_limit(limits.get("five_hour")) if isinstance(limits, dict) else None

@@ -16,6 +16,13 @@
   security = {
     polkit.enable = true;
     rtkit.enable = true;
+    # O hyprlock (Home Manager) autentica a senha por esta pilha; a digital
+    # ele lê direto do fprintd, em paralelo, então o pam_fprintd fica de fora.
+    pam.services.hyprlock = {
+      fprintAuth = false;
+      # Senha errada volta na hora, sem o atraso de 2 s do pam_unix.
+      nodelay = true;
+    };
   };
 
   programs.hyprland = {

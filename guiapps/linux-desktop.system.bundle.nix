@@ -4,6 +4,7 @@
 {
   imports = [
     ./espanso/system.nix
+    ./fingerprint/system.nix
     ./hyprland/system.nix
     ./kdeconnect/system.nix
     ./steam/system.nix

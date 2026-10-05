@@ -1,4 +1,10 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  osConfig ? { },
+  ...
+}:
 
 # O arquivo de matches precisa continuar gravável: ele é compartilhado entre
 # as máquinas pelo mangaba, portanto não pode ser um symlink para o Nix store.
@@ -6,6 +12,10 @@ let
   localFile = "${config.xdg.configHome}/espanso/match/base.yml";
   remoteHost = "fuleco@mangaba";
   remoteFile = "/data/sync/espanso/base.yml";
+
+  # Wrapper com capabilities criado por ./system.nix (NixOS com Wayland).
+  wrapperDir = osConfig.security.wrapperDir or "/run/wrappers/bin";
+  hasWrapper = (osConfig.security.wrappers or { }) ? espanso;
 
   emptyMatches = pkgs.writeText "espanso-base.yml" ''
     # Adicione seus atalhos aqui. Exemplo:
@@ -52,6 +62,12 @@ in
     # sincronizado em runtime, fora do Nix store.
     configs = { };
     matches = { };
+
+    package-wayland = lib.mkIf hasWrapper (
+      pkgs.writeShellScriptBin "espanso" ''
+        exec ${wrapperDir}/espanso "$@"
+      ''
+    );
   };
 
   home.packages = [ sync ];

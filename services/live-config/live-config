@@ -1,0 +1,268 @@
+usage() {
+  cat <<'EOF'
+uso:
+  live-config list
+  live-config status [nome]
+  live-config diff <nome>
+  live-config reset <nome|--all>
+  live-config save <nome> [--repo <caminho>] [--yes]
+EOF
+}
+
+manifest="${LIVE_CONFIG_MANIFEST:?LIVE_CONFIG_MANIFEST não foi definido}"
+state_dir="$(jq -er '.stateDirectory' "$manifest")"
+
+entry_exists() {
+  jq -e --arg name "$1" '.entries | has($name)' "$manifest" >/dev/null
+}
+
+require_entry() {
+  if ! entry_exists "$1"; then
+    echo "configuração desconhecida: $1" >&2
+    echo "disponíveis: $(jq -r '.entries | keys | join(", ")' "$manifest")" >&2
+    exit 2
+  fi
+}
+
+entry_field() {
+  jq -er --arg name "$1" --arg field "$2" '.entries[$name][$field]' "$manifest"
+}
+
+entry_optional_field() {
+  jq -r --arg name "$1" --arg field "$2" '.entries[$name][$field] // ""' "$manifest"
+}
+
+entry_names() {
+  jq -r '.entries | keys[]' "$manifest"
+}
+
+replace_with_baseline() {
+  local name="$1"
+  local baseline worktree parent temporary payload
+  baseline="$(entry_field "$name" baseline)"
+  worktree="$(entry_field "$name" worktree)"
+  parent="$(dirname "$worktree")"
+
+  mkdir -p "$parent"
+  temporary="$(mktemp -d "$parent/.${name}.XXXXXX")"
+  payload="$temporary/payload"
+
+  if [[ -d "$baseline" ]]; then
+    mkdir "$payload"
+    cp -a "$baseline/." "$payload/"
+  else
+    cp -a "$baseline" "$payload"
+  fi
+  chmod -R u+w "$payload"
+
+  if [[ -e "$worktree" || -L "$worktree" ]]; then
+    rm -rf -- "$worktree"
+  fi
+  mv "$payload" "$worktree"
+  rmdir "$temporary"
+}
+
+status_one() {
+  local name="$1"
+  local baseline worktree
+  require_entry "$name"
+  baseline="$(entry_field "$name" baseline)"
+  worktree="$(entry_field "$name" worktree)"
+
+  if [[ ! -e "$worktree" && ! -L "$worktree" ]]; then
+    printf '%-20s %s\n' "$name" "não inicializada"
+  elif diff -qr -- "$baseline" "$worktree" >/dev/null; then
+    printf '%-20s %s\n' "$name" "original"
+  else
+    printf '%-20s %s\n' "$name" "modificada neste boot"
+  fi
+}
+
+initialize_for_boot() {
+  local boot_id previous_boot name worktree
+  mkdir -p "$state_dir/worktrees"
+  boot_id="$(< /proc/sys/kernel/random/boot_id)"
+  previous_boot=""
+  if [[ -f "$state_dir/boot-id" ]]; then
+    previous_boot="$(< "$state_dir/boot-id")"
+  fi
+
+  while IFS= read -r name; do
+    worktree="$(entry_field "$name" worktree)"
+    if [[ "$boot_id" != "$previous_boot" || ( ! -e "$worktree" && ! -L "$worktree" ) ]]; then
+      replace_with_baseline "$name"
+    fi
+  done < <(entry_names)
+
+  printf '%s\n' "$boot_id" >"$state_dir/boot-id"
+}
+
+save_entry() {
+  local name="$1"
+  shift
+  local repository=""
+  local assume_yes="false"
+  local repository_path worktree destination repository_real destination_real answer
+
+  while (( $# > 0 )); do
+    case "$1" in
+      --repo)
+        if (( $# < 2 )); then
+          echo "--repo exige um caminho" >&2
+          exit 2
+        fi
+        repository="$2"
+        shift 2
+        ;;
+      --yes)
+        assume_yes="true"
+        shift
+        ;;
+      *)
+        echo "opção desconhecida: $1" >&2
+        exit 2
+        ;;
+    esac
+  done
+
+  require_entry "$name"
+  repository_path="$(entry_optional_field "$name" repositoryPath)"
+  if [[ -z "$repository_path" ]]; then
+    echo "$name não autoriza promoção automática ao repositório" >&2
+    exit 2
+  fi
+
+  worktree="$(entry_field "$name" worktree)"
+  if [[ ! -e "$worktree" && ! -L "$worktree" ]]; then
+    echo "$name ainda não foi inicializada" >&2
+    exit 1
+  fi
+
+  if [[ -z "$repository" ]]; then
+    if ! repository="$(jj root 2>/dev/null)"; then
+      echo "execute dentro do repositório ou informe --repo <caminho>" >&2
+      exit 2
+    fi
+  fi
+  if ! repository="$(cd "$repository" && jj root 2>/dev/null)"; then
+    echo "não é um repositório Jujutsu: $repository" >&2
+    exit 2
+  fi
+
+  repository_real="$(realpath "$repository")"
+  destination="$repository_real/$repository_path"
+  destination_real="$(realpath -m "$destination")"
+  case "$destination_real" in
+    "$repository_real"/*) ;;
+    *)
+      echo "destino escaparia da raiz do repositório: $destination_real" >&2
+      exit 2
+      ;;
+  esac
+
+  if [[ "$assume_yes" != "true" ]]; then
+    if [[ ! -t 0 ]]; then
+      echo "a promoção não interativa exige --yes" >&2
+      exit 2
+    fi
+    printf 'Promover %s para %s? Arquivos removidos também serão removidos do repositório. [y/N] ' \
+      "$name" "$destination_real"
+    read -r answer
+    case "$answer" in
+      y | Y | yes | YES | sim | SIM) ;;
+      *)
+        echo "promoção cancelada"
+        exit 1
+        ;;
+    esac
+  fi
+
+  if [[ -d "$worktree" ]]; then
+    if [[ -e "$destination_real" && ! -d "$destination_real" ]]; then
+      echo "o destino existe e não é um diretório: $destination_real" >&2
+      exit 1
+    fi
+    mkdir -p "$destination_real"
+    rsync -a --delete -- "$worktree/" "$destination_real/"
+  else
+    if [[ -d "$destination_real" ]]; then
+      echo "o destino existe e é um diretório: $destination_real" >&2
+      exit 1
+    fi
+    mkdir -p "$(dirname "$destination_real")"
+    cp -a -- "$worktree" "$destination_real"
+    chmod u+w "$destination_real"
+  fi
+
+  echo "alterações promovidas; revise o diff e aplique uma nova geração quando estiver satisfeito:"
+  (cd "$repository_real" && jj diff -- "$repository_path") || true
+}
+
+command="${1:-}"
+if (( $# > 0 )); then
+  shift
+fi
+
+case "$command" in
+  __initialize)
+    initialize_for_boot
+    ;;
+  list)
+    entry_names
+    ;;
+  status)
+    if (( $# > 1 )); then
+      usage >&2
+      exit 2
+    elif (( $# == 1 )); then
+      status_one "$1"
+    else
+      while IFS= read -r name; do
+        status_one "$name"
+      done < <(entry_names)
+    fi
+    ;;
+  diff)
+    if (( $# != 1 )); then
+      usage >&2
+      exit 2
+    fi
+    require_entry "$1"
+    baseline="$(entry_field "$1" baseline)"
+    worktree="$(entry_field "$1" worktree)"
+    if [[ ! -e "$worktree" && ! -L "$worktree" ]]; then
+      echo "$1 ainda não foi inicializada" >&2
+      exit 1
+    fi
+    diff -ruN -- "$baseline" "$worktree" || true
+    ;;
+  reset)
+    if (( $# != 1 )); then
+      usage >&2
+      exit 2
+    fi
+    if [[ "$1" == "--all" ]]; then
+      while IFS= read -r name; do
+        replace_with_baseline "$name"
+        echo "$name restaurada"
+      done < <(entry_names)
+    else
+      require_entry "$1"
+      replace_with_baseline "$1"
+      echo "$1 restaurada"
+    fi
+    ;;
+  save)
+    if (( $# < 1 )); then
+      usage >&2
+      exit 2
+    fi
+    name="$1"
+    shift
+    save_entry "$name" "$@"
+    ;;
+  *)
+    usage >&2
+    exit 2
+    ;;
+esac

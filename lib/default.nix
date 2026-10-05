@@ -13,4 +13,5 @@ in
     ;
 
   mkDesktopEntry = import ./desktop-entry.nix { inherit lib; };
+  mkLiveConfigPackage = import ./live-config.nix { };
 }

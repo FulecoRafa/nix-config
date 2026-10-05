@@ -13,7 +13,10 @@
     ./kdeconnect
     (root + /termapps/ai-usage)
     (root + /services/flatpak-lab)
+    (root + /services/live-config)
   ];
+
+  services.liveConfig.enable = true;
 
   home.packages = with pkgs; [
     obs-studio

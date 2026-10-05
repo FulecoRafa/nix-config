@@ -55,7 +55,7 @@ Outras ideias que valem preservar:
 - Helium empacotado em `guiapps/helium`;
 - fábrica declarativa de web apps em `guiapps/local-web-apps.nix`;
 - Ghostty em `termapps/ghostty`;
-- Helix, Nushell, Fish, Zellij, Jujutsu, Fastfetch e utilitários CLI;
+- Helix, Zsh, Fish, Zellij, Jujutsu, Fastfetch e utilitários CLI;
 - `fuchico`, aplicação própria;
 - helpers para arquivos `.desktop` em `lib`.
 
@@ -126,8 +126,9 @@ A decidir, nesta ordem:
 2. escopo do primeiro Quickshell. Podemos criar stubs de barra, launcher,
    notificações, OSD e lock inspirados fortemente no macOS enquanto o design é
    desenvolvido;
-3. autenticação declarativa do usuário físico; o login usa greetd/tuigreet e
-   inicia Hyprland via UWSM, enquanto o bloqueio será feito pelo Hyprlock;
+3. autenticação declarativa do usuário físico; o login usa SDDM (Qt6, Wayland)
+   e inicia Hyprland via UWSM, enquanto o bloqueio é feito pelo Hyprlock;
+   ambos aceitam digital quando há leitor;
 4. backend do histórico de clipboard, integrado ao launcher;
 5. detalhes do ambiente de desenvolvimento. Aplicações confirmadas: Fuchico,
    VS Code, Zed, Helix, TUIs usuais e Docker; ambientes de projeto virão do
@@ -181,7 +182,8 @@ aplicações:
   Bluetooth, login, KDE Connect e Steam no nível do sistema;
 - `guiapps/linux-desktop.home.bundle.nix`: aplicações da sessão, associações
   XDG, Quickshell, KDE Connect e painel de uso das ferramentas de IA;
-- `guiapps/hyprland/`: atalhos, Hyprlock, clipboard, greetd, Quickshell,
+- `guiapps/hyprland/`: atalhos, Hyprlock, clipboard, SDDM, papel de parede,
+  Quickshell, ajustes do Hyprland editáveis via live-config,
   gerenciador declarativo e interativo de monitores e fluxo de screenshots
   com Hyprshot, Gradia e OCR para PDF via Tesseract;
 - `guiapps/steam/system.nix`: Steam e correções usuais da comunidade NixOS,
@@ -198,6 +200,9 @@ aplicações:
   usados ao fechar e recupera limpezas interrompidas no próximo login;
 - `services/tailscale-client/`: mantém o Jaca conectado ao tailnet, prepara o
   roteamento de cliente e preserva o login fora do Nix store;
+- `services/live-config/`: fornece cópias de configuração mutáveis por boot,
+  restauração declarativa e promoção explícita para destinos autorizados no
+  repositório; inicialmente usado pelo código QML do Quickshell;
 - `vm.nix`: perfil descartável `jaca-vm` em aarch64-linux para validar o host
   numa VM Linux em Apple Silicon.
 
@@ -210,7 +215,8 @@ Os atalhos de screenshot preservam `Print`, `Super+Print` e
 `Super+Shift+Print` para capturas rápidas. `Ctrl+Print` e
 `Super+Ctrl+Print` enviam região ou janela ao Gradia; `Alt+Print` e
 `Super+Alt+Print` geram um PDF pesquisável de região ou janela em
-`Documentos/Screenshots/OCR`.
+`Documentos/Screenshots/OCR`. Os atalhos do design, `Super+Shift+S`
+(região) e `Super+Shift+O` (região com OCR), também existem.
 
 O host físico continua exposto como `nixosModules.jaca`; o perfil testável é
 `nixosConfigurations.jaca-vm`. Para expor e instalar
@@ -237,5 +243,28 @@ opções de inicialização usuais são, respectivamente, `gamemoderun %command%
 `mangohud %command%` e `gamescope -f -- %command%`; elas podem ser combinadas
 por jogo.
 
-Os elementos visuais atuais são deliberadamente neutros e funcionam como
-stubs; não representam o tema ou o design final.
+O Quickshell segue o design "Ayu Shell" (tema Ayu Mirage, ícones Phosphor
+fill). Os módulos implementados são:
+
+- barra com pins de apps e TUIs;
+- launcher com calculadora, arquivos e emoji;
+- central de controle;
+- notificações;
+- OSD;
+- gaveta de widgets (`Super+W`): mídia, clima (wttr.in), energia, calendário,
+  sistema, timers/pomodoro/alarmes e notas, com modo de edição;
+- mini widgets no papel de parede;
+- painel de limites de IA (`Super+U`) com o histórico de 7 dias;
+- HUD de atalhos: flash de 1,2 s nos binds reconhecidos e a lista completa em
+  `Super+/`;
+- tray do sistema na barra e agente polkit próprio;
+- cartão de captura (`Print`): região, janela ou tela, com copiar, salvar,
+  Gradia e OCR; o OCR abre o PDF pesquisável no Papers e a notificação tem
+  "abrir OCR".
+
+Janelas flutuantes movem com `Super`+arrastar ou com três dedos no touchpad
+segurando `Super`.
+
+TUIs abertas pelo shell usam a classe `fuleco.<nome>` e flutuam centralizadas.
+
+Ainda não implementado: o Alt+Tab com miniaturas.

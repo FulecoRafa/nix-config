@@ -16,6 +16,10 @@ Singleton {
     // Captura de tela em andamento: os painéis abertos não fecham quando o
     // seletor (cartão de modos, slurp) pega o foco, então dá para capturá-los.
     property bool capturing: false
+
+    // App Exposé pedido pela barra (clique direito num app); o Expo atende.
+    signal appExposeRequested(string pattern)
+    function appExpose(pattern: string): void { appExposeRequested(pattern) }
     property ShellScreen screen: focusedScreen()
     // Janelas da barra: cliques nelas não fecham o painel aberto (o próprio
     // botão da barra decide se alterna ou troca de painel).

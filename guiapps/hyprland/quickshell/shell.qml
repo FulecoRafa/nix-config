@@ -13,6 +13,8 @@ ShellRoot {
     Osd {}
     Hud {}
     Capture {}
+    AltTab {}
+    Expo {}
     Ipc {}
     PolkitAgent {}
 }

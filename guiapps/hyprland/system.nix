@@ -1,10 +1,18 @@
-{ ... }:
+{ pkgs, ... }:
 
 # Base NixOS compartilhável para desktops Hyprland iniciados pelo UWSM.
 {
   imports = [ ./login.nix ];
 
   hardware.graphics.enable = true;
+
+  # O edge-swipe (Home Manager) lê o touchpad pelo evdev; uaccess dá ao
+  # usuário da sessão ativa acesso só aos touchpads, sem o grupo input.
+  services.udev.packages = [
+    (pkgs.writeTextDir "lib/udev/rules.d/70-touchpad-uaccess.rules" ''
+      SUBSYSTEM=="input", KERNEL=="event*", ENV{ID_INPUT_TOUCHPAD}=="1", TAG+="uaccess"
+    '')
+  ];
 
   services.pipewire = {
     enable = true;

@@ -1,0 +1,166 @@
+"""Gesto de dois dedos vindo da borda direita do touchpad.
+
+O libinput entrega dois dedos como rolagem, então o Hyprland não vê esse
+gesto. Este daemon lê o touchpad pelo evdev (sem tomá-lo do compositor):
+dois dedos que começam na faixa direita e correm para a esquerda abrem a
+gaveta de widgets; dois dedos para a direita a fecham.
+
+Uso: edge-swipe <comando> ...  (o comando recebe "edgeIn" ou "edgeOut")
+"""
+
+import selectors
+import signal
+import subprocess
+import sys
+import time
+
+import evdev
+from evdev import ecodes
+
+EDGE = 0.12  # faixa da borda direita, em fração da largura
+TRAVEL = 0.14  # quanto os dedos precisam andar na horizontal
+DOMINANCE = 1.6  # horizontal precisa vencer o vertical por este fator
+
+
+def touchpads():
+    found = []
+    for path in evdev.list_devices():
+        try:
+            device = evdev.InputDevice(path)
+        except OSError:
+            continue
+        caps = device.capabilities()
+        keys = caps.get(ecodes.EV_KEY, [])
+        axes = [code for code, _ in caps.get(ecodes.EV_ABS, [])]
+        direct = ecodes.INPUT_PROP_DIRECT in device.input_props()
+        if (
+            ecodes.BTN_TOOL_DOUBLETAP in keys
+            and ecodes.ABS_MT_POSITION_X in axes
+            and not direct
+        ):
+            found.append(device)
+        else:
+            device.close()
+    return found
+
+
+class Tracker:
+    def __init__(self, device, command):
+        self.command = command
+        x = device.absinfo(ecodes.ABS_MT_POSITION_X)
+        y = device.absinfo(ecodes.ABS_MT_POSITION_Y)
+        self.x0, self.width = x.min, max(1, x.max - x.min)
+        self.y0, self.height = y.min, max(1, y.max - y.min)
+        self.slot = 0
+        self.slots = {}
+        self.fingers = 0
+        self.start = None
+        self.done = False
+
+    def fire(self, action):
+        subprocess.Popen([*self.command, action], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    def centroid(self):
+        points = [p for p in self.slots.values() if "x" in p and "y" in p]
+        if len(points) != 2:
+            return None
+        return (
+            sum(p["x"] for p in points) / 2,
+            sum(p["y"] for p in points) / 2,
+        )
+
+    def handle(self, event):
+        if event.type == ecodes.EV_ABS:
+            if event.code == ecodes.ABS_MT_SLOT:
+                self.slot = event.value
+            elif event.code == ecodes.ABS_MT_TRACKING_ID:
+                if event.value < 0:
+                    self.slots.pop(self.slot, None)
+                else:
+                    self.slots[self.slot] = {}
+            elif event.code == ecodes.ABS_MT_POSITION_X:
+                self.slots.setdefault(self.slot, {})["x"] = event.value
+            elif event.code == ecodes.ABS_MT_POSITION_Y:
+                self.slots.setdefault(self.slot, {})["y"] = event.value
+        elif event.type == ecodes.EV_KEY:
+            count = {
+                ecodes.BTN_TOOL_FINGER: 1,
+                ecodes.BTN_TOOL_DOUBLETAP: 2,
+                ecodes.BTN_TOOL_TRIPLETAP: 3,
+                ecodes.BTN_TOOL_QUADTAP: 4,
+                ecodes.BTN_TOOL_QUINTTAP: 5,
+            }.get(event.code)
+            if count is not None:
+                if event.value:
+                    self.fingers = count
+                elif self.fingers == count:
+                    self.fingers = 0
+        elif event.type == ecodes.EV_SYN and event.code == ecodes.SYN_REPORT:
+            self.report()
+
+    def report(self):
+        if self.fingers == 0:
+            # Todos os dedos saíram: o próximo toque é um gesto novo.
+            self.start = None
+            self.done = False
+            return
+        if self.fingers != 2:
+            # Três dedos ou mais são do Hyprland; um dedo é o cursor.
+            if self.fingers > 2:
+                self.done = True
+            self.start = None
+            return
+        if self.done:
+            return
+        point = self.centroid()
+        if point is None:
+            return
+        x = (point[0] - self.x0) / self.width
+        y = (point[1] - self.y0) / self.height
+        if self.start is None:
+            self.start = (x, y)
+            return
+        dx, dy = x - self.start[0], y - self.start[1]
+        if abs(dx) < TRAVEL or abs(dx) < DOMINANCE * abs(dy):
+            return
+        if dx < 0 and self.start[0] >= 1 - EDGE:
+            self.fire("edgeIn")
+        elif dx > 0:
+            self.fire("edgeOut")
+        self.done = True
+
+
+def run(command):
+    devices = touchpads()
+    if not devices:
+        return False
+    selector = selectors.DefaultSelector()
+    for device in devices:
+        selector.register(device, selectors.EVENT_READ, Tracker(device, command))
+        print(f"lendo {device.path} ({device.name})", flush=True)
+    try:
+        while True:
+            for key, _ in selector.select():
+                for event in key.fileobj.read():
+                    key.data.handle(event)
+    except OSError:
+        # Touchpad sumiu (suspensão, troca de dispositivo): procura de novo.
+        return True
+    finally:
+        for device in devices:
+            device.close()
+
+
+def main():
+    command = sys.argv[1:]
+    if not command:
+        sys.exit("uso: edge-swipe <comando> ...")
+    # Os comandos disparados não viram zumbis.
+    signal.signal(signal.SIGCHLD, signal.SIG_IGN)
+    while True:
+        run(command)
+        time.sleep(3)
+
+
+if __name__ == "__main__":
+    main()

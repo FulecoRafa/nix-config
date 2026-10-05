@@ -14,7 +14,7 @@ Scope {
     // Apps fixos. `match` casa com o app-id das janelas abertas.
     readonly property var pinned: [
         { icon: "compass", color: Theme.cyan, match: /helium|chrom|firefox|zen/i, command: ["helium"] },
-        { icon: "terminal-window", color: Theme.green, match: /ghostty|kitty|foot|alacritty/i, command: ["ghostty"] },
+        { icon: "terminal-window", color: Theme.green, match: /ghostty|kitty|foot|alacritty|^fuleco\.terminal$/i, command: ["ghostty"] },
         { icon: "folder", color: Theme.yellow, match: /yazi|nautilus|thunar|dolphin/i, command: ["ghostty", "--class=fuleco.yazi", "-e", "yazi"] },
         { icon: "magnifying-glass", color: Theme.yellow, panel: "launcher" },
         { icon: "squares-four", color: Theme.purple, panel: "drawer" }
@@ -91,6 +91,7 @@ Scope {
         property bool active: false
         property bool running: false
         signal clicked
+        signal secondaryClicked
 
         implicitWidth: 34
         implicitHeight: 34
@@ -134,6 +135,8 @@ Scope {
 
         HoverHandler { id: hover; cursorShape: Qt.PointingHandCursor }
         TapHandler { onTapped: tile.clicked() }
+        // Clique direito: App Exposé com as janelas do app.
+        TapHandler { acceptedButtons: Qt.RightButton; onTapped: tile.secondaryClicked() }
     }
 
     component StatusIcon: Item {
@@ -284,6 +287,7 @@ Scope {
                                     ? ShellState.panel === modelData.panel
                                     : windows.some(toplevel => toplevel.activated)
                                 onClicked: root.activatePinned(modelData)
+                                onSecondaryClicked: if (modelData.match && windows.length > 0) ShellState.appExpose(modelData.match.source)
                             }
                         }
 
@@ -294,10 +298,15 @@ Scope {
                                 required property string modelData
                                 readonly property var windows: root.toplevels.filter(t => t.appId === modelData)
                                 readonly property var entry: DesktopEntries.heuristicLookup(modelData)
+                                // Sem ícone no tema (TUIs fuleco.*, apps sem .desktop): um do Phosphor.
+                                readonly property string themed: Quickshell.iconPath(entry?.icon ?? modelData, true)
 
-                                iconSource: Quickshell.iconPath(entry?.icon ?? modelData, "application-x-executable")
+                                icon: themed !== "" ? "" : modelData.startsWith("fuleco.") ? (root.tuiIcons[modelData.slice(7)] ?? "terminal-window") : "app-window"
+                                accent: modelData.startsWith("fuleco.") ? Theme.green : Theme.cyan
+                                iconSource: themed
                                 running: true
                                 active: windows.some(toplevel => toplevel.activated)
+                                onSecondaryClicked: ShellState.appExpose("^" + modelData.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$")
                                 onClicked: {
                                     const current = windows.findIndex(toplevel => toplevel.activated)
                                     windows[(current + 1) % windows.length].activate()

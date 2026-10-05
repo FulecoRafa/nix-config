@@ -27,6 +27,11 @@ let
   hud = id: "${quickshellCtl} hud flash ${id} & ";
   wallpaper = pkgs.callPackage ./wallpaper/package.nix { };
   phosphorIcons = pkgs.callPackage ./phosphor/package.nix { };
+  # Dois dedos da borda direita do touchpad abrem/fecham a gaveta.
+  edgeSwipe = pkgs.writers.writePython3Bin "edge-swipe" {
+    libraries = [ pkgs.python3Packages.evdev ];
+    flakeIgnore = [ "E501" "W503" ];
+  } (builtins.readFile ./edge-swipe);
 in
 {
   imports = [
@@ -195,6 +200,10 @@ in
           # Diálogos (abrir/salvar arquivo, confirmações) flutuam no centro
           # sem mexer no tiling.
           "match:modal true, float on, center on"
+          # Pop-ups do navegador (login, OAuth, extensões) nascem como
+          # "Untitled - <navegador>"; janelas novas (Ctrl+N) são "New Tab".
+          # Flutuam com o tamanho pedido pela página, sem mexer no tiling.
+          "match:class ^(helium|chromium|google-chrome|brave-browser)$, match:initial_title ^(Untitled - .*)$, float on, center on"
           "match:class ^(xdg-desktop-portal-gtk|org\\.freedesktop\\.impl\\.portal\\..*)$, float on, center on, size 900 600"
           "match:title ^(Open File|Open Folder|Save File|Save As|Select .*|Choose .*|Abrir .*|Salvar .*|Selecionar .*|Escolher .*)$, float on, center on, size 900 600"
         ];
@@ -246,6 +255,15 @@ in
         bind = [
           "SUPER, RETURN, exec, ${hud "return"}$terminal"
           "SUPER SHIFT, RETURN, exec, ${hud "shift-return"}$browser"
+          # Terminal já flutuando (cai na regra fuleco.*).
+          "SUPER ALT, T, exec, ${hud "alt-t"}$terminal --class=fuleco.terminal"
+          # Exposé e Alt+Tab do shell; o Alt+Tab usa atalho global (sem
+          # passar por um processo) e confirma ao soltar o Alt (bindrt abaixo).
+          "SUPER, TAB, exec, ${hud "tab"}${quickshellCtl} expo toggle"
+          # App Exposé: as janelas do app em foco, de todos os workspaces.
+          "SUPER, GRAVE, exec, ${hud "grave"}${quickshellCtl} expo app"
+          "ALT, TAB, global, quickshell:alttab-next"
+          "ALT SHIFT, TAB, global, quickshell:alttab-prev"
           "SUPER, SPACE, exec, ${hud "space"}${quickshellCtl} launcher toggle"
           "SUPER CTRL, V, exec, ${hud "ctrl-v"}${quickshellCtl} launcher clipboard"
           "SUPER CTRL, M, exec, ${hud "ctrl-m"}${quickshellCtl} monitors toggle"
@@ -263,6 +281,7 @@ in
           "SUPER, Q, exec, ${quickshellCtl} hud flash q"
           "SUPER, T, exec, ${quickshellCtl} hud flash t"
           "SUPER, T, togglefloating"
+          "SUPER, H, exec, ${hud "h"}${quickshellCtl} shell floats"
           "SUPER, J, layoutmsg, togglesplit"
           "SUPER, left, movefocus, l"
           "SUPER, right, movefocus, r"
@@ -299,6 +318,12 @@ in
           ", XF86AudioPrev, exec, playerctl previous"
         ];
 
+        # Soltar o Alt escolhe a janela do Alt+Tab (com ou sem Shift preso).
+        bindrt = [
+          "ALT, ALT_L, exec, ${quickshellCtl} alttab commit"
+          "ALT SHIFT, ALT_L, exec, ${quickshellCtl} alttab commit"
+        ];
+
         # Redimensiona a janela ativa (segurar repete).
         binde = [
           "SUPER SHIFT, left, resizeactive, -40 0"
@@ -314,8 +339,13 @@ in
           "SUPER, mouse:273, resizewindow"
         ];
 
-        # No touchpad, sem precisar clicar: Super + 3 dedos arrasta a janela.
+        # Touchpad: 3 dedos para os lados trocam de workspace, para cima abrem
+        # o exposé e para baixo fecham (ou, sem nada aberto, abrem o App
+        # Exposé do app em foco); com Super, 3 dedos arrastam a janela.
         gesture = [
+          "3, horizontal, workspace"
+          "3, up, dispatcher, exec, ${quickshellCtl} expo open"
+          "3, down, dispatcher, exec, ${quickshellCtl} expo down"
           "3, swipe, mod: SUPER, move"
         ];
       };
@@ -331,6 +361,19 @@ in
     };
 
     systemd.user.services = {
+      edge-swipe = {
+        Unit = {
+          Description = "Two-finger swipe from the touchpad's right edge";
+          PartOf = [ "graphical-session.target" ];
+          After = [ "graphical-session.target" ];
+        };
+        Service = {
+          ExecStart = "${lib.getExe edgeSwipe} ${quickshellCtl} shell";
+          Restart = "on-failure";
+        };
+        Install.WantedBy = [ "graphical-session.target" ];
+      };
+
       cliphist-text = {
         Unit = {
           Description = "Store text clipboard history";

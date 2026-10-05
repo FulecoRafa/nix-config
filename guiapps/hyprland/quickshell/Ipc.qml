@@ -23,5 +23,19 @@ Scope {
             if (ShellState.panel === "control" && ShellState.controlTab === tab) ShellState.close()
             else ShellState.openControl(tab)
         }
+
+        // Super+H: esconde/mostra as janelas flutuantes do workspace.
+        function floats(): void {
+            Windows.toggleFloats()
+        }
+
+        // Gesto de dois dedos vindo da borda direita do touchpad.
+        function edgeIn(): void {
+            if (ShellState.panel !== "drawer") ShellState.open("drawer")
+        }
+
+        function edgeOut(): void {
+            if (ShellState.panel === "drawer") ShellState.close()
+        }
     }
 }

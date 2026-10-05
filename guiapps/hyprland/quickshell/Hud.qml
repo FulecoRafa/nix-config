@@ -24,12 +24,17 @@ Scope {
         { id: "ctrl-v", keys: ["super", "ctrl", "v"], label: "área de transferência", command: "quickshell · cliphist", icon: "clipboard-text", color: Theme.yellow },
         { id: "return", keys: ["super", "enter"], label: "terminal", command: "ghostty", icon: "terminal-window", color: Theme.text },
         { id: "shift-return", keys: ["super", "shift", "enter"], label: "navegador", command: "helium", icon: "compass", color: Theme.cyan },
+        { id: "alt-t", keys: ["super", "alt", "t"], label: "terminal flutuante", command: "ghostty · flutuante", icon: "terminal-window", color: Theme.purple },
+        { id: "tab", keys: ["super", "tab"], label: "exposé", command: "quickshell · expo", icon: "cards", color: Theme.yellow },
+        { id: "grave", keys: ["super", "`"], label: "janelas do app", command: "quickshell · expo app", icon: "copy", color: Theme.yellow },
+        { id: "alt-tab", keys: ["alt", "tab"], label: "alternar janelas", command: "quickshell · alttab", icon: "arrows-left-right", color: Theme.textMuted },
         { id: "esc", keys: ["super", "esc"], label: "energia", command: "quickshell · power", icon: "power", color: Theme.red },
         { id: "ctrl-m", keys: ["super", "ctrl", "m"], label: "monitores", command: "quickshell · monitors", icon: "monitor", color: Theme.textMuted },
         { id: "ctrl-l", keys: ["super", "ctrl", "l"], label: "bloquear", command: "hyprlock", icon: "lock", color: Theme.textMuted },
         { id: "q", keys: ["super", "q"], label: "fechar janela", command: "killactive", icon: "x-circle", color: Theme.textMuted },
         { id: "f", keys: ["super", "f"], label: "tela cheia", command: "fullscreen", icon: "arrows-out", color: Theme.textMuted },
         { id: "t", keys: ["super", "t"], label: "flutuar janela", command: "togglefloating", icon: "app-window", color: Theme.textMuted },
+        { id: "h", keys: ["super", "h"], label: "esconder flutuantes", command: "quickshell · floats", icon: "eye-slash", color: Theme.textMuted },
         { id: "1-9", keys: ["super", "1…9"], label: "ir para o workspace", command: "workspace", icon: "squares-four", color: Theme.textMuted },
         { id: "slash", keys: ["super", "/"], label: "lista de atalhos", command: "quickshell · hud", icon: "keyboard", color: Theme.textMuted }
     ]

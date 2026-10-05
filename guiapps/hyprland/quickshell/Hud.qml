@@ -35,6 +35,8 @@ Scope {
         { id: "f", keys: ["super", "f"], label: "tela cheia", command: "fullscreen", icon: "arrows-out", color: Theme.textMuted },
         { id: "t", keys: ["super", "t"], label: "flutuar janela", command: "togglefloating", icon: "app-window", color: Theme.textMuted },
         { id: "h", keys: ["super", "h"], label: "esconder flutuantes", command: "quickshell · floats", icon: "eye-slash", color: Theme.textMuted },
+        { id: "p", keys: ["super", "p"], label: "tocar / pausar", command: "quickshell · media", icon: "play-pause", color: Theme.purple },
+        { id: "shift-p", keys: ["super", "shift", "p"], label: "ir para o app tocando", command: "quickshell · media focus", icon: "music-notes", color: Theme.purple },
         { id: "alt-space", keys: ["super", "alt", "space"], label: "trocar layout do teclado", command: "us ⇄ us internacional", icon: "keyboard", color: Theme.cyan },
         { id: "1-9", keys: ["super", "1…9"], label: "ir para o workspace", command: "workspace", icon: "squares-four", color: Theme.textMuted },
         { id: "slash", keys: ["super", "/"], label: "lista de atalhos", command: "quickshell · hud", icon: "keyboard", color: Theme.textMuted }

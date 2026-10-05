@@ -43,11 +43,39 @@ Singleton {
         write([...items, { id: newId(), kind: "timer", label: label, duration: duration, end: Date.now() + duration, remaining: duration, paused: false }])
     }
 
-    function addAlarm(time: string, label: string): void {
+    function addAlarm(time: string, label: string): bool {
         const match = time.trim().match(/^(\d{1,2})[:h]?(\d{2})$/)
-        if (!match || Number(match[1]) > 23 || Number(match[2]) > 59) return
+        if (!match || Number(match[1]) > 23 || Number(match[2]) > 59) return false
         const normalized = match[1].padStart(2, "0") + ":" + match[2]
         write([...items, { id: newId(), kind: "alarm", time: normalized, days: [], label: label, enabled: true, fired: "" }])
+        return true
+    }
+
+    // Interpreta o campo da gaveta. Alarmes: "06:40 acordar", "7h", "7h30",
+    // "19.30", "0715", "7pm", com ou sem "alarme:" na frente. Timers: "10m",
+    // "25 min foco", "1h30m". Devolve "" quando criou, ou a mensagem de erro.
+    function create(text: string): string {
+        const rest = text.trim().replace(/^(alarme|alarm)\s*:?\s*/i, "")
+        if (rest === "") return "digite um horário"
+
+        let match = rest.match(/^(?:(\d+)\s*h\s*)?(\d+)\s*(?:m|min|mins|minutos?)(?:\s+(.*))?$/i)
+        if (match) {
+            const minutes = Number(match[1] || 0) * 60 + Number(match[2])
+            if (minutes <= 0) return "duração inválida"
+            startTimer(minutes, (match[3] || "").trim() || "timer")
+            return ""
+        }
+
+        match = rest.match(/^(\d{1,2})(?:\s*[:h.]\s*(\d{2})|(\d{2}))?\s*(h|am|pm)?(?:\s+(.*))?$/i)
+        if (!match) return "use 06:40, 7h30 ou 10m"
+        let hours = Number(match[1])
+        const minutes = Number(match[2] || match[3] || 0)
+        const suffix = (match[4] || "").toLowerCase()
+        if (suffix === "pm" && hours < 12) hours += 12
+        if (suffix === "am" && hours === 12) hours = 0
+        if (hours > 23 || minutes > 59) return "horário inválido"
+        addAlarm(String(hours) + ":" + String(minutes).padStart(2, "0"), (match[5] || "").trim())
+        return ""
     }
 
     function remaining(timer: var): real {
@@ -116,6 +144,20 @@ Singleton {
         } else {
             notify("timer · " + (timer.label || "timer"), done)
         }
+    }
+
+    // Para testes e atalhos: `quickshell -c fuleco ipc call timers alarm 06:40 acordar`.
+    IpcHandler {
+        target: "timers"
+
+        function alarm(time: string, label: string): string {
+            return root.addAlarm(time, label) ? "ok" : "horário inválido: " + time
+        }
+        function timer(minutes: real, label: string): void { root.startTimer(minutes, label) }
+        // O mesmo texto do campo da gaveta: "7h30 acordar", "10m chá".
+        function add(text: string): string { return root.create(text) || "ok" }
+        function remove(id: string): void { root.remove(id) }
+        function list(): string { return JSON.stringify(root.items) }
     }
 
     Process {

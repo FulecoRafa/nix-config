@@ -77,6 +77,10 @@ Singleton {
             property var drawerLayout: null
             // Pico diário da sessão (5h) de cada IA: { claude: { "2026-10-05": 62 } }.
             property var aiHistory: ({})
+            // Mídia: identity do player → classe da janela que mostrou a música
+            // por último ({ helium: "chrome-…-Default" }), para achar o app
+            // mesmo pausado e depois de reiniciar o shell.
+            property var mediaApps: ({})
         }
     }
 }

@@ -66,11 +66,14 @@ in
       bluetui
       brightnessctl
       calcure
+      # Espectro do áudio para a onda do widget de mídia.
+      cava
       cliphist
       hyprpicker
       imv
       libnotify
-      mpv
+      # Com MPRIS, para aparecer no widget de mídia e nos atalhos.
+      (mpv.override { scripts = [ mpvScripts.mpris ]; })
       # Ícones do shell (Phosphor fill), usados pelo Quickshell.
       phosphorIcons
       playerctl
@@ -295,6 +298,8 @@ in
           "SUPER, T, exec, ${quickshellCtl} hud flash t"
           "SUPER, T, togglefloating"
           "SUPER, H, exec, ${hud "h"}${quickshellCtl} shell floats"
+          # Leva até a janela do app que está tocando (o mesmo do clique no cartão).
+          "SUPER SHIFT, P, exec, ${hud "shift-p"}${quickshellCtl} media focus"
           "SUPER, J, layoutmsg, togglesplit"
           "SUPER, left, movefocus, l"
           "SUPER, right, movefocus, r"
@@ -326,9 +331,14 @@ in
         bindl = [
           ", XF86AudioMute, exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
           ", XF86AudioMicMute, exec, wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"
-          ", XF86AudioPlay, exec, playerctl play-pause"
-          ", XF86AudioNext, exec, playerctl next"
-          ", XF86AudioPrev, exec, playerctl previous"
+          ", XF86AudioPlay, exec, ${quickshellCtl} media playPause"
+          ", XF86AudioNext, exec, ${quickshellCtl} media next"
+          ", XF86AudioPrev, exec, ${quickshellCtl} media previous"
+          # O notebook não tem teclas de mídia: Super+P toca/pausa, Super+,
+          # e Super+. voltam/avançam a faixa.
+          "SUPER, P, exec, ${hud "p"}${quickshellCtl} media playPause"
+          "SUPER, PERIOD, exec, ${quickshellCtl} media next"
+          "SUPER, COMMA, exec, ${quickshellCtl} media previous"
         ];
 
         # Soltar o Alt escolhe a janela do Alt+Tab (com ou sem Shift preso).

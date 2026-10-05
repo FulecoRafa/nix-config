@@ -289,9 +289,9 @@ Scope {
         implicitHeight: listCard.implicitHeight + 16
 
         HyprlandFocusGrab {
-            active: root.listing
+            active: root.listing && !ShellState.capturing
             windows: [listWindow]
-            onCleared: if (root.listing) ShellState.close()
+            onCleared: if (root.listing && !ShellState.capturing) ShellState.close()
         }
 
         Rectangle {

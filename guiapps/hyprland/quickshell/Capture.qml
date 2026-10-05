@@ -19,6 +19,8 @@ Scope {
     ]
     property int modeIndex: 0
     property bool picking: false
+    // shell-capture rodando (avisa com `capture begin` e `capture end`).
+    property bool external: false
 
     // Captura atual no cartão.
     property string path: ""
@@ -33,12 +35,22 @@ Scope {
     readonly property string sizeText: shotWidth > 0 ? shotWidth + " × " + shotHeight : ""
 
     function open(): void {
+        // Print de novo alterna: fecha a barra de modos ou cancela a seleção.
+        if (picking) {
+            picking = false
+            return
+        }
+        if (external) {
+            Quickshell.execDetached(["pkill", "-x", "slurp"])
+            return
+        }
         if (shown) dismiss(true)
         picking = true
     }
 
     function pick(index: int): void {
         modeIndex = index
+        external = true
         picking = false
         // Dá tempo da barra sumir antes do slurp congelar a tela.
         launch.restart()
@@ -98,10 +110,25 @@ Scope {
 
         function open(): void { root.open() }
         function ready(path: string): void { root.ready(path) }
+        function begin(): void { root.external = true }
+        function end(): void { root.external = false }
         function cancel(): void {
             root.picking = false
             root.dismiss(true)
         }
+    }
+
+    Binding {
+        target: ShellState
+        property: "capturing"
+        value: root.picking || root.external
+    }
+
+    // Rede de segurança caso o shell-capture morra sem avisar o fim.
+    Timer {
+        running: root.external
+        interval: 120000
+        onTriggered: root.external = false
     }
 
     Timer {

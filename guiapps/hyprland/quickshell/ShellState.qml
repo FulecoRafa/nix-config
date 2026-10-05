@@ -13,6 +13,9 @@ Singleton {
     property string panel: ""
     property string controlTab: "rede"
     property string launcherScope: "tudo"
+    // Captura de tela em andamento: os painéis abertos não fecham quando o
+    // seletor (cartão de modos, slurp) pega o foco, então dá para capturá-los.
+    property bool capturing: false
     property ShellScreen screen: focusedScreen()
     // Janelas da barra: cliques nelas não fecham o painel aberto (o próprio
     // botão da barra decide se alterna ou troca de painel).

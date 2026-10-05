@@ -101,9 +101,9 @@ Scope {
         }
 
         HyprlandFocusGrab {
-            active: root.centerOpen
+            active: root.centerOpen && !ShellState.capturing
             windows: [center, ...ShellState.barWindows]
-            onCleared: if (root.centerOpen) ShellState.close()
+            onCleared: if (root.centerOpen && !ShellState.capturing) ShellState.close()
         }
 
         Flickable {

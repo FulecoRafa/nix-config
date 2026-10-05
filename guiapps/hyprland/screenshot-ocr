@@ -15,6 +15,10 @@ fail() {
   exit 1
 }
 
+# Segundo toque num atalho de captura com uma seleção aberta: cancela a
+# seleção em vez de abrir outra por cima.
+if pkill -x slurp; then exit 0; fi
+
 source="$1"
 case "$source" in
   region | window) args=(-m "$source") ;;

@@ -13,6 +13,7 @@ let
     runtimeInputs = [
       pkgs.coreutils
       pkgs.hyprshot
+      pkgs.procps
       pkgs.libnotify
       pkgs.papers
       pkgs.wl-clipboard
@@ -30,11 +31,13 @@ let
       pkgs.coreutils
       pkgs.gradia
       pkgs.hyprshot
+      pkgs.procps
       pkgs.libnotify
       pkgs.quickshell
     ];
     text = builtins.readFile ./shell-capture;
   };
+  pkill = lib.getExe' pkgs.procps "pkill";
   capture = mode: "${lib.getExe shellCapture} ${mode}";
   # Sem o shell no ar, captura o monitor em foco direto.
   captureUi = "${lib.getExe pkgs.quickshell} -c fuleco ipc call capture open || ${capture "output"}";
@@ -69,8 +72,8 @@ in
     "SUPER SHIFT, O, exec, ${hud "shift-o"}${lib.getExe screenshotOcr} region"
 
     # Captura seguida de edição/anotação no Gradia.
-    "CTRL, PRINT, exec, ${lib.getExe pkgs.hyprshot} -m region -- ${lib.getExe pkgs.gradia}"
-    "SUPER CTRL, PRINT, exec, ${lib.getExe pkgs.hyprshot} -m window -- ${lib.getExe pkgs.gradia}"
+    "CTRL, PRINT, exec, ${pkill} -x slurp || ${lib.getExe pkgs.hyprshot} -m region -- ${lib.getExe pkgs.gradia}"
+    "SUPER CTRL, PRINT, exec, ${pkill} -x slurp || ${lib.getExe pkgs.hyprshot} -m window -- ${lib.getExe pkgs.gradia}"
 
     # Captura seguida de OCR: texto no clipboard e PDF pesquisável aberto.
     "ALT, PRINT, exec, ${lib.getExe screenshotOcr} region"

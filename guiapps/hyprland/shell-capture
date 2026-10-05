@@ -3,6 +3,10 @@ if (( $# != 1 )); then
   exit 2
 fi
 
+# Segundo toque num atalho de captura com uma seleção aberta: cancela a
+# seleção em vez de abrir outra por cima.
+if pkill -x slurp; then exit 0; fi
+
 mode="$1"
 case "$mode" in
   region | window) args=(-m "$mode") ;;
@@ -13,6 +17,11 @@ case "$mode" in
     exit 2
     ;;
 esac
+
+# Enquanto captura, o shell mantém os painéis abertos (dá para capturar a
+# gaveta, a central etc.); o trap avisa o fim mesmo com Esc ou erro.
+quickshell -c fuleco ipc call capture begin >/dev/null 2>&1 || true
+trap 'quickshell -c fuleco ipc call capture end >/dev/null 2>&1 || true' EXIT
 
 # As capturas ficam no runtime dir; o cartão do shell decide o destino.
 dir="${XDG_RUNTIME_DIR:-/tmp}/capturas"

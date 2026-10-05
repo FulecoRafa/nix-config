@@ -51,9 +51,9 @@ PanelWindow {
     onShownChanged: if (shown) opened()
 
     HyprlandFocusGrab {
-        active: win.shown
+        active: win.shown && !ShellState.capturing
         windows: [win, ...ShellState.barWindows]
-        onCleared: if (win.shown) ShellState.close()
+        onCleared: if (win.shown && !ShellState.capturing) ShellState.close()
     }
 
     Rectangle {

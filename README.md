@@ -54,8 +54,10 @@ Collections of different machine specifications
   `sudo darwin-rebuild switch --flake .#caju`. Activation removes Homebrew
   packages not declared by Caju with `brew bundle cleanup --force`, but keeps
   application data and preferences (it does not use `zap`).
-- TODO: **Laptop(_jabuticaba_)**: the linux laptop. Kinda like _jaca_,
-but with battery optimizations
+- **Laptop(_jabuticaba_)**: ThinkPad T14 Gen 2i. Reaproveita a composição
+  do _jaca_ e acrescenta hardware físico, energia (power-profiles-daemon,
+  thermald), leitor de digitais, fwupd e SSH por chave. Instalação a partir do
+  live USB em `hosts/jaca/install/`.
 - **Server(_mangaba_)**: homelab. Media (Jellyfin, *arr, Recyclarr, qBittorrent,
 Navidrome, beets, slskd), apps (Vaultwarden, Forgejo, ntfy, Actual), rsync sync jobs,
 AdGuard Home, Glance and restic backups. Everything is exposed over the tailnet

@@ -45,6 +45,13 @@
           ./hosts/jaca/vm.nix
         ];
       };
+      nixosConfigurations.jabuticaba = nixpkgs.lib.nixosSystem {
+        specialArgs = {
+          inherit inputs fulecoLib;
+          root = ./.;
+        };
+        modules = [ ./hosts/jabuticaba ];
+      };
       darwinConfigurations.caju = inputs.nix-darwin.lib.darwinSystem {
         specialArgs = {
           inherit inputs fulecoLib;

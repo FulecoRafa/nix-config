@@ -1,0 +1,36 @@
+if (( $# != 1 )); then
+  echo "uso: shell-capture <region|window|output>" >&2
+  exit 2
+fi
+
+mode="$1"
+case "$mode" in
+  region | window) args=(-m "$mode") ;;
+  # Monitor em foco, sem esperar um clique para escolher a tela.
+  output) args=(-m active -m output) ;;
+  *)
+    echo "modo de captura inválido: $mode" >&2
+    exit 2
+    ;;
+esac
+
+# As capturas ficam no runtime dir; o cartão do shell decide o destino.
+dir="${XDG_RUNTIME_DIR:-/tmp}/capturas"
+mkdir -p "$dir"
+name="$(date +'%Y-%m-%d-%H%M%S').png"
+file="$dir/$name"
+
+# Esc na seleção cancela sem arquivo e sem aviso. O hyprshot já copia a
+# imagem para o clipboard.
+hyprshot "${args[@]}" --silent -o "$dir" -f "$name" || true
+[[ -s "$file" ]] || exit 0
+
+if ! quickshell -c fuleco ipc call capture ready "$file" >/dev/null 2>&1; then
+  # Shell fora do ar: avisa direto, e clicar abre no Gradia.
+  action="$(notify-send -a screenshot -i "$file" \
+    -A default=editar -A edit="abrir no gradia" \
+    "captura pronta" "copiada para o clipboard" || true)"
+  if [[ -n "$action" ]]; then
+    exec gradia "$file"
+  fi
+fi

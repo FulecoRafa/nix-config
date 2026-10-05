@@ -12,6 +12,7 @@ ShellRoot {
     MonitorManager {}
     Osd {}
     Hud {}
+    Capture {}
     Ipc {}
     PolkitAgent {}
 }

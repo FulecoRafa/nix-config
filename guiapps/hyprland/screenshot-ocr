@@ -1,14 +1,28 @@
+quiet=0
+if [[ "${1:-}" == "--quiet" ]]; then
+  quiet=1
+  shift
+fi
+
 if (( $# != 1 )); then
-  echo "uso: screenshot-ocr <region|window|output>" >&2
+  echo "uso: screenshot-ocr [--quiet] <region|window|output|imagem>" >&2
   exit 2
 fi
 
-mode="$1"
-case "$mode" in
-  region | window | output) ;;
+fail() {
+  echo "screenshot-ocr: $1" >&2
+  (( quiet )) || notify-send -a screenshot -u critical "OCR falhou" "$1" || true
+  exit 1
+}
+
+source="$1"
+case "$source" in
+  region | window) args=(-m "$source") ;;
+  # Monitor em foco, sem esperar um clique para escolher a tela.
+  output) args=(-m active -m output) ;;
   *)
-    echo "modo de captura inválido: $mode" >&2
-    exit 2
+    [[ -f "$source" ]] || fail "modo ou imagem inválida: $source"
+    args=()
     ;;
 esac
 
@@ -26,15 +40,51 @@ mkdir -p "$output_dir"
 timestamp="$(date +'%Y-%m-%d-%H%M%S')"
 output_base="$output_dir/${timestamp}_screenshot-ocr"
 pdf="$output_base.pdf"
-image="$(mktemp "${TMPDIR:-/tmp}/screenshot-ocr.XXXXXX.png")"
+text="$output_base.txt"
 
-cleanup() {
-  rm -f -- "$image"
-}
-trap cleanup EXIT HUP INT TERM
+image="$source"
+if (( ${#args[@]} )); then
+  image="$(mktemp "${TMPDIR:-/tmp}/screenshot-ocr.XXXXXX.png")"
+  trap 'rm -f -- "$image"' EXIT HUP INT TERM
 
-hyprshot -m "$mode" --raw >"$image"
-tesseract "$image" "$output_base" -l por+eng pdf
+  # Esc na seleção: sai quieto.
+  hyprshot "${args[@]}" --raw >"$image" 2>/dev/null || true
+  [[ -s "$image" ]] || exit 0
+fi
 
-notify-send "OCR concluído" "PDF pesquisável salvo em $pdf" || true
-xdg-open "$pdf"
+tesseract "$image" "$output_base" -l por+eng txt pdf >/dev/null 2>&1 \
+  || fail "o tesseract não conseguiu ler a imagem"
+
+# Sem o form feed que o tesseract põe no fim da página.
+content="$(tr -d '\f' <"$text")"
+printf '%s' "$content" >"$text"
+if [[ -n "${content//[[:space:]]/}" ]]; then
+  printf '%s' "$content" | wl-copy
+fi
+
+if (( quiet )); then
+  # Para o cartão do shell: caminho do PDF na primeira linha, depois o texto.
+  printf '%s\n%s\n' "$pdf" "$content"
+  exit 0
+fi
+
+if [[ -z "${content//[[:space:]]/}" ]]; then
+  summary="OCR sem texto"
+  body="nenhum texto encontrado; PDF salvo em <i>$pdf</i>"
+else
+  summary="texto copiado"
+  body="$(printf '%s' "$content" | head -c 200)"
+fi
+
+# O PDF tem a captura com a camada de texto por cima: dá para selecionar e
+# copiar direto "na tela". Abre no Papers, que flutua grande (screenshots.nix),
+# e a notificação reabre o PDF ("abrir OCR" ou clique).
+papers "$pdf" >/dev/null 2>&1 &
+disown
+(
+  action="$(notify-send -a screenshot -A default="abrir OCR" -A open="abrir OCR" "$summary" "$body" || true)"
+  case "$action" in
+    default | open) exec papers "$pdf" >/dev/null 2>&1 ;;
+  esac
+) &
+disown

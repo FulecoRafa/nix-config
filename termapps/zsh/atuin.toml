@@ -1,0 +1,13 @@
+# Histórico local: nada é sincronizado sem `atuin login` explícito.
+auto_sync = false
+update_check = false
+
+# Ctrl+R: busca fuzzy em todo o histórico; Ctrl+R de novo dentro da busca
+# alterna entre global, host, sessão e diretório.
+search_mode = "fuzzy"
+filter_mode = "global"
+style = "compact"
+inline_height = 20
+show_preview = true
+enter_accept = false
+keymap_mode = "auto"

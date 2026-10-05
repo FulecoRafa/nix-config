@@ -41,13 +41,18 @@
   time.timeZone = "America/Sao_Paulo";
   i18n.defaultLocale = "en_US.UTF-8";
 
-  programs.fish.enable = true;
+  programs.zsh = {
+    enable = true;
+    # O compinit roda no .zshrc do Home Manager.
+    enableGlobalCompInit = false;
+  };
+  environment.pathsToLink = [ "/share/zsh" ];
 
   dockerHost.enable = true;
 
   users.users.fuleco = {
     isNormalUser = true;
-    shell = pkgs.fish;
+    shell = pkgs.zsh;
     extraGroups = [
       "networkmanager"
       "video"

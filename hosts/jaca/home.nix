@@ -7,7 +7,7 @@
   imports = [
     (root + /guiapps/linux-desktop.home.bundle.nix)
     (root + /termapps/cli_utils.bundle.nix)
-    (root + /termapps/nushell)
+    (root + /termapps/zsh)
     (root + /hosts/terminal/home/fuleco/userdata.nix)
   ];
 

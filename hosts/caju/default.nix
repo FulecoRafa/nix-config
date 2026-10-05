@@ -42,9 +42,14 @@
   };
 
   programs.fish.enable = true;
+  programs.zsh = {
+    enable = true;
+    # O compinit roda no .zshrc do Home Manager.
+    enableGlobalCompInit = false;
+  };
   users.users.fuleco = {
     home = "/Users/fuleco";
-    shell = pkgs.fish;
+    shell = pkgs.zsh;
   };
 
   security.pam.services.sudo_local.touchIdAuth = true;

@@ -6,8 +6,12 @@
     settings = {
       font-family = "CaskaydiaCove Nerd Font";
       font-size = 14;
-      shell-integration = "nushell";
+      shell-integration = "zsh";
       background = "#1f2430";
+      # Leve transparência; o blur fica a cargo do compositor (Hyprland) ou
+      # do próprio Ghostty no macOS.
+      background-opacity = 0.88;
+      background-blur = true;
       foreground = "#cbccc6";
       cursor-color = "#ffcc66";
       cursor-text = "#1f2430";

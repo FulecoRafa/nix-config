@@ -28,11 +28,17 @@
   i18n.defaultLocale = "en_US.UTF-8";
 
   programs.fish.enable = true;
+  programs.zsh = {
+    enable = true;
+    # O compinit roda no .zshrc do Home Manager.
+    enableGlobalCompInit = false;
+  };
+  environment.pathsToLink = [ "/share/zsh" ];
   users.users.fuleco = {
     isNormalUser = true;
     extraGroups = [ "wheel" ]; # Enable ‘sudo’ for the user.
     initialPassword = "correcthorsebatterystaple";
-    shell = pkgs.fish;
+    shell = pkgs.zsh;
     packages = with pkgs; [
     ];
   };

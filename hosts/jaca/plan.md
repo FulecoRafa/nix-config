@@ -260,11 +260,36 @@ fill). Os módulos implementados são:
 - tray do sistema na barra e agente polkit próprio;
 - cartão de captura (`Print`): região, janela ou tela, com copiar, salvar,
   Gradia e OCR; o OCR abre o PDF pesquisável no Papers e a notificação tem
-  "abrir OCR".
+  "abrir OCR";
+- Alt+Tab entre as janelas do workspace, com miniaturas ao vivo, na ordem de
+  uso; soltar o Alt escolhe;
+- exposé (`Super+Tab` ou três dedos para cima): grade com as janelas do
+  workspace e pílulas para trocar de workspace;
+- App Exposé (`` Super+` ``, três dedos para baixo ou clique direito num app da
+  barra): as janelas de um app só, de todos os workspaces (inclusive as
+  flutuantes escondidas), com o workspace de cada uma.
 
-Janelas flutuantes movem com `Super`+arrastar ou com três dedos no touchpad
-segurando `Super`.
+Gestos do touchpad: três dedos para os lados trocam de workspace, para cima
+abrem o exposé e para baixo fecham (sem nada aberto, abrem o App Exposé). Dois dedos vindos da borda direita abrem a
+gaveta de widgets e dois dedos para a direita a fecham; como o libinput trata
+dois dedos como rolagem, um daemon (`edge-swipe`) lê o touchpad pelo evdev,
+com acesso dado por uma regra udev `uaccess`. Janelas flutuantes movem com
+`Super`+arrastar ou com três dedos segurando `Super`.
+
+`Super+Alt+T` abre um terminal já flutuando. WhatsApp e Telegram entram como
+web apps do Helium.
+
+Teclado: US para código e US internacional (teclas mortas) para acentos;
+`Super+Alt+Espaço` ou o chip `us`/`intl` da barra alternam, com flash no HUD.
+A busca do espanso foi para `Alt+Shift+Espaço` para não disparar junto.
+
+Mídia: com vários players, vale o último que começou a tocar (ou o escolhido
+nos chips do cartão). `Super+P`, `Super+,` e `Super+.` (e as teclas de mídia)
+agem sobre esse player. Clicar no cartão ou `Super+Shift+P` leva à janela do
+app, achada pelo PID do dono no D-Bus e pelo título com a música (um PWA como
+o YouTube Music é lembrado mesmo pausado). O mpv tem o script MPRIS.
+
+Pop-ups do navegador (login, OAuth) nascem "Untitled - Helium" e flutuam
+centralizados; diálogos modais também.
 
 TUIs abertas pelo shell usam a classe `fuleco.<nome>` e flutuam centralizadas.
-
-Ainda não implementado: o Alt+Tab com miniaturas.

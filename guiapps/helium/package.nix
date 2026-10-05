@@ -28,6 +28,11 @@ pkgs.appimageTools.wrapType2 {
   pname = "helium";
   inherit version;
   src = appimage;
+  # O AppRun grava $APPIMAGE (ou o próprio caminho no store) no Exec dos
+  # PWAs instalados; o nome do comando sobrevive a atualizações e ao GC.
+  profile = ''
+    export APPIMAGE=helium
+  '';
   extraInstallCommands = ''
     install -Dm644 ${extracted}/helium.desktop $out/share/applications/helium.desktop
     substituteInPlace $out/share/applications/helium.desktop \

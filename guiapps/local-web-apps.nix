@@ -19,6 +19,19 @@ let
     };
 
   launchers = lib.mapAttrs mkLauncher cfg.apps;
+
+  # App-id que o Chromium (Helium) dá a uma janela --app no Wayland:
+  # "chrome-" + host + "_" + caminho com "/" trocado por "_" + "-Default".
+  # https://web.telegram.org/a/ vira chrome-web.telegram.org__a_-Default.
+  appClass =
+    url:
+    let
+      rest = lib.last (lib.splitString "://" url);
+      parts = lib.splitString "/" rest;
+      host = lib.head parts;
+      path = "/" + lib.concatStringsSep "/" (lib.tail parts);
+    in
+    "chrome-${host}_${lib.replaceStrings [ "/" ] [ "_" ] path}-Default";
   desktopFiles = lib.mapAttrs' (
     id: app:
     fulecoLib.mkDesktopEntry {
@@ -30,6 +43,7 @@ let
         categories
         ;
       exec = lib.getExe launchers.${id};
+      startupWMClass = appClass app.url;
     }
   ) cfg.apps;
 in

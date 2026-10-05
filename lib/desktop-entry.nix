@@ -9,6 +9,8 @@
   categories ? [ "Utility" ],
   terminal ? false,
   startupNotify ? true,
+  # Classe/app-id da janela, para barras e docks ligarem a janela ao .desktop.
+  startupWMClass ? null,
 }:
 
 lib.nameValuePair "applications/${lib.strings.sanitizeDerivationName id}.desktop" {
@@ -22,6 +24,7 @@ lib.nameValuePair "applications/${lib.strings.sanitizeDerivationName id}.desktop
       StartupNotify = startupNotify;
     }
     // lib.optionalAttrs (icon != null) { Icon = toString icon; }
-    // lib.optionalAttrs (comment != null) { Comment = comment; };
+    // lib.optionalAttrs (comment != null) { Comment = comment; }
+    // lib.optionalAttrs (startupWMClass != null) { StartupWMClass = startupWMClass; };
   };
 }

@@ -13,7 +13,7 @@ in
       After = [ "graphical-session.target" ];
     };
     Service = {
-      ExecStart = "${kdeconnect}/libexec/kdeconnectd";
+      ExecStart = "${kdeconnect}/bin/kdeconnectd";
       Restart = "on-failure";
       RestartSec = 3;
     };

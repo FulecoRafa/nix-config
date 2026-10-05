@@ -5,7 +5,7 @@ let
   sources = {
     x86_64-linux = {
       arch = "x86_64";
-      hash = "sha256-qx92G2VWfd3QYr0EYtNCoJlNfGOAvh71cQuFE5A8Hzw=";
+      hash = "sha256-h3yxZnMb/EHvPJALQlJgHUVYUNsfuv0pnewgf6K6sx8=";
     };
     aarch64-linux = {
       arch = "arm64";

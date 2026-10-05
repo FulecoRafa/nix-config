@@ -35,6 +35,7 @@ Scope {
         { id: "f", keys: ["super", "f"], label: "tela cheia", command: "fullscreen", icon: "arrows-out", color: Theme.textMuted },
         { id: "t", keys: ["super", "t"], label: "flutuar janela", command: "togglefloating", icon: "app-window", color: Theme.textMuted },
         { id: "h", keys: ["super", "h"], label: "esconder flutuantes", command: "quickshell · floats", icon: "eye-slash", color: Theme.textMuted },
+        { id: "alt-space", keys: ["super", "alt", "space"], label: "trocar layout do teclado", command: "us ⇄ us internacional", icon: "keyboard", color: Theme.cyan },
         { id: "1-9", keys: ["super", "1…9"], label: "ir para o workspace", command: "workspace", icon: "squares-four", color: Theme.textMuted },
         { id: "slash", keys: ["super", "/"], label: "lista de atalhos", command: "quickshell · hud", icon: "keyboard", color: Theme.textMuted }
     ]
@@ -58,6 +59,19 @@ Scope {
         flashing = false
         flashing = true
         expiry.restart()
+    }
+
+    Connections {
+        target: Keyboard
+        function onSwitched() {
+            root.show({
+                keys: ["super", "alt", "space"],
+                label: Keyboard.intl ? "US internacional" : "US",
+                command: Keyboard.intl ? "acentos com teclas mortas" : "layout para código",
+                icon: "keyboard",
+                color: Keyboard.intl ? Theme.cyan : Theme.textMuted
+            })
+        }
     }
 
     // Estado dos LEDs (-1 = ainda não lido).

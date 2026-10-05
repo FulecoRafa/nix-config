@@ -58,9 +58,13 @@ in
   services.espanso = {
     enable = true;
 
-    # Não gerar YAML pelo Home Manager: base.yml deve ser editável e
-    # sincronizado em runtime, fora do Nix store.
-    configs = { };
+    # Só o default.yml vem do Home Manager; os matches (base.yml) precisam
+    # ser editáveis e sincronizados em runtime, fora do Nix store.
+    # No Hyprland o Alt+Espaço da busca do espanso disparava junto com o
+    # Super+Alt+Espaço (troca de layout do teclado): fica Alt+Shift+Espaço.
+    configs = lib.optionalAttrs pkgs.stdenv.isLinux {
+      default.search_shortcut = "ALT+SHIFT+SPACE";
+    };
     matches = { };
 
     package-wayland = lib.mkIf hasWrapper (

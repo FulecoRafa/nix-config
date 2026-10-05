@@ -444,6 +444,30 @@ Scope {
                     Tray { id: tray; window: bar }
                     Divider { visible: tray.visible }
 
+                    // Layout do teclado; clique alterna (como Super+Alt+Espaço).
+                    Rectangle {
+                        Layout.alignment: Qt.AlignVCenter
+                        implicitWidth: layoutText.implicitWidth + 12
+                        implicitHeight: 18
+                        radius: 5
+                        color: Keyboard.intl ? Theme.cyan : "transparent"
+                        border.color: Keyboard.intl ? Theme.cyan : Theme.surfaceBorder
+                        opacity: layoutHover.hovered ? 0.8 : 1
+
+                        Text {
+                            id: layoutText
+                            anchors.centerIn: parent
+                            text: Keyboard.label
+                            color: Keyboard.intl ? Theme.onAccent : Theme.textMuted
+                            font.family: Theme.font
+                            font.pixelSize: 10
+                            font.weight: Font.DemiBold
+                        }
+
+                        HoverHandler { id: layoutHover; cursorShape: Qt.PointingHandCursor }
+                        TapHandler { onTapped: Keyboard.toggle() }
+                    }
+
                     Row {
                         spacing: 14
 

@@ -32,6 +32,13 @@ let
     libraries = [ pkgs.python3Packages.evdev ];
     flakeIgnore = [ "E501" "W503" ];
   } (builtins.readFile ./edge-swipe);
+  # US ⇄ US internacional. O "next" vira cada teclado por conta própria e eles
+  # se desencontram (o virtual do espanso inclusive); daqui todos vão para o
+  # índice oposto ao do teclado principal.
+  kbToggle = pkgs.writeShellScript "kb-layout-toggle" ''
+    index=$(hyprctl devices -j | ${lib.getExe pkgs.jq} '[.keyboards[] | select(.main)][0].active_layout_index // 0')
+    exec hyprctl switchxkblayout all $((1 - index))
+  '';
 in
 {
   imports = [
@@ -174,6 +181,10 @@ in
           follow_mouse = 1;
           repeat_delay = 250;
           repeat_rate = 35;
+          # US para código e US internacional (teclas mortas) para acentos;
+          # Super+Alt+Espaço alterna.
+          kb_layout = "us,us";
+          kb_variant = ",intl";
           # Caps Lock vira Esc e vice-versa.
           kb_options = "caps:swapescape";
           # Rolagem com dois dedos no mesmo sentido do macOS.
@@ -265,6 +276,8 @@ in
           "ALT, TAB, global, quickshell:alttab-next"
           "ALT SHIFT, TAB, global, quickshell:alttab-prev"
           "SUPER, SPACE, exec, ${hud "space"}${quickshellCtl} launcher toggle"
+          # Layout do teclado (o HUD mostra qual ficou, via Keyboard.qml).
+          "SUPER ALT, SPACE, exec, ${kbToggle}"
           "SUPER CTRL, V, exec, ${hud "ctrl-v"}${quickshellCtl} launcher clipboard"
           "SUPER CTRL, M, exec, ${hud "ctrl-m"}${quickshellCtl} monitors toggle"
           "SUPER CTRL, L, exec, ${lib.getExe pkgs.hyprlock}"

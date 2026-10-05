@@ -14,7 +14,9 @@ in
 
   programs.fish = {
     enable = true;
-    generateCompletions = true;
+    # O gerador do Home Manager depende de create_manpage_completions.py,
+    # que o fish 4.8 não distribui mais; o build quebra com ele ligado.
+    generateCompletions = false;
     shellAbbrs = rec {
       ls = mkIf (hasPackage "eza") "eza --icons=auto";
       exa = ls;
